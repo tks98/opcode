@@ -16,7 +16,7 @@ export function environmentProblem() {
   if (typeof SharedArrayBuffer === 'undefined' || !globalThis.crossOriginIsolated) {
     return 'This page is not cross-origin isolated, so the terminal cannot start. ' +
       'Serve Opcode with the Cross-Origin-Opener-Policy: same-origin and ' +
-      'Cross-Origin-Embedder-Policy: require-corp headers (see README), or reload the page.'
+      'Cross-Origin-Embedder-Policy: require-corp headers (see docs/deploying.md), or reload the page.'
   }
   if (typeof WebAssembly === 'undefined') return 'This browser does not support WebAssembly.'
   return null

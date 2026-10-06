@@ -68,7 +68,7 @@
 
     <label for="relay-url">Relay address</label>
     <input id="relay-url" bind:value={relay} placeholder="wss://relay.example.com/" spellcheck="false" onkeydown={(e) => e.key === 'Enter' && save()} />
-    <p class="hint">Anyone running Opcode can host one with <code>npm run relay</code> (see the README).</p>
+    <p class="hint">Anyone running Opcode can host one with <code>npm run relay</code> (<a href="https://github.com/tks98/opcode/blob/main/docs/deploying.md#internet-relay" target="_blank" rel="noopener">how</a>).</p>
 
     {#if message}
       <p class="message" class:error={message.kind === 'error'} role="status">{message.text}</p>
