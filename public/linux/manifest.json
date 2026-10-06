@@ -1,0 +1,12 @@
+{
+  "v86": "0.5.470",
+  "memoryMB": 256,
+  "hardware": 2,
+  "alpine": "3.24.2",
+  "created": "2026-10-06",
+  "snapshot": "ce9965b3393793a0",
+  "files": [
+    "opcode-linux.state"
+  ],
+  "bytes": 42346884
+}

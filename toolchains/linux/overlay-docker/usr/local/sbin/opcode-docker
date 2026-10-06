@@ -1,0 +1,31 @@
+#!/bin/sh
+# Starts Docker on Opcode Docker machines (opcode-boot runs this at boot).
+# Machines start from a snapshot taken after boot, so this runs once, when
+# the snapshot is made, and students find Docker already running.
+
+# What containers need from the kernel: loaded now rather than on demand.
+for module in overlay bridge br_netfilter veth nf_conntrack nf_nat nf_tables \
+  nft_compat nft_chain_nat nft_ct nft_masq nft_nat nft_reject_inet nft_fib_inet \
+  xt_addrtype xt_conntrack xt_MASQUERADE xt_nat xt_tcpudp xt_mark xt_comment \
+  xt_multiport ipt_REJECT; do
+  modprobe "$module" 2>/dev/null
+done
+mount -t cgroup2 cgroup2 /sys/fs/cgroup
+# Image layers on a filesystem of their own (overlay can't stack on the
+# root filesystem, which is the initramfs).
+mkdir -p /var/lib/docker
+mount -t tmpfs -o mode=710 tmpfs /var/lib/docker
+
+# DOCKER_RAMDISK: containers can't pivot_root out of an initramfs, so runc
+# moves their root filesystem into place instead.
+DOCKER_RAMDISK=true setsid dockerd > /var/log/docker.log 2>&1 < /dev/null &
+for _ in $(seq 300); do
+  docker version > /dev/null 2>&1 && break
+  sleep 1
+done
+
+images=/var/lib/opcode/images.tar
+if [ -f "$images" ]; then
+  docker load -q -i "$images" >> /var/log/docker.log 2>&1
+  rm -f "$images"
+fi

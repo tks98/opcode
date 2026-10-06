@@ -1,0 +1,284 @@
+#!/bin/bash
+# tutorial - a hands-on introduction to Docker (Opcode Docker machines).
+#
+#   tutorial          show the current lesson
+#   tutorial check    check your work and move on
+#   tutorial hint     get a hint
+#   tutorial list     list all lessons
+#   tutorial go N     jump to lesson N
+#   tutorial reset    start over
+
+PROGRESS="$HOME/.docker-tutorial-progress"
+
+bold=$'\e[1m' dim=$'\e[2m' green=$'\e[32m' yellow=$'\e[33m' cyan=$'\e[36m' reset=$'\e[0m'
+
+TITLES=(
+  ""
+  "Your first container"
+  "Images"
+  "Inside a container"
+  "Containers in the background"
+  "Looking inside a running container"
+  "Stopping and removing"
+  "Building an image"
+  "Running your image"
+  "Volumes keep data"
+  "Compose"
+  "Cleaning up"
+)
+LAST=$((${#TITLES[@]} - 1))
+
+current() {
+  local n
+  n=$(cat "$PROGRESS" 2>/dev/null)
+  [[ "$n" =~ ^[0-9]+$ ]] && [ "$n" -ge 1 ] && echo "$n" || echo 1
+}
+# Progress lives in the machine; ask Opcode to save the machine too.
+save() { echo "$1" > "$PROGRESS"; opcode-save > /dev/null 2>&1 & }
+say() { printf '%s\n' "$@"; }
+cmd() { printf '    %s$ %s%s\n' "$cyan" "$1" "$reset"; }
+
+# Is a container with this name running?
+running() { [ "$(docker inspect -f '{{.State.Running}}' "$1" 2>/dev/null)" = true ]; }
+
+lesson_text() {
+  case "$1" in
+    1)
+      say "A container is a program running in its own little world: its own files,"
+      say "its own processes, its own network. It starts from an ${bold}image${reset}, a"
+      say "packaged file system with everything the program needs."
+      say ""
+      cmd "docker run hello-world" ; say "      start a container from the hello-world image"
+      say ""
+      say "Read what it prints: it explains what Docker just did."
+      say ""
+      say "${bold}Your task:${reset} run the hello-world container, then:  tutorial check"
+      ;;
+    2)
+      say "Images are the templates containers start from. This machine has a few."
+      cmd "docker images" ; say "      list them, with their sizes"
+      cmd "docker history nginx:alpine-slim" ; say "      images are made of layers"
+      say ""
+      say "${bold}Your task:${reset} which image is the smallest? Answer with its name:"
+      say "tutorial answer <name>"
+      ;;
+    3)
+      say "-it gives you a terminal inside the container. alpine is a tiny Linux"
+      say "system, so you get a shell:"
+      cmd "docker run -it alpine sh"
+      say "Inside, look around (ls, ps, hostname), then type ${bold}exit${reset} to leave."
+      say "Notice that ps shows almost nothing: the container only sees its own processes."
+      say ""
+      say "${bold}Your task:${reset} find out which version of Alpine the alpine image contains"
+      say "(it is in /etc/alpine-release), and answer:  tutorial answer <version>"
+      ;;
+    4)
+      say "Servers run in the background (-d, detached). -p connects a port of this"
+      say "machine to a port of the container; --name gives it a name."
+      cmd "docker run -d --name web -p 8080:80 nginx:alpine-slim"
+      cmd "docker ps" ; say "      running containers"
+      cmd "curl localhost:8080" ; say "      port 8080 here reaches port 80 in the container"
+      say ""
+      say "${bold}Your task:${reset} start nginx as above (named web, on port 8080), then:"
+      say "tutorial check"
+      ;;
+    5)
+      cmd "docker logs web" ; say "      what the container printed (nginx logs each visit)"
+      cmd "docker exec web ls /usr/share/nginx/html" ; say "      run a command inside it"
+      cmd "docker exec -it web sh" ; say "      or get a shell inside it (exit leaves)"
+      say ""
+      say "${bold}Your task:${reset} add a file called hi.txt to /usr/share/nginx/html inside"
+      say "the web container, so that  curl localhost:8080/hi.txt  shows it. Then:"
+      say "tutorial check"
+      ;;
+    6)
+      cmd "docker stop web" ; say "      stop it (it still exists: docker ps -a)"
+      cmd "docker start web" ; say "      start it again, as it was"
+      cmd "docker rm web" ; say "      remove a stopped container (rm -f stops it first)"
+      say ""
+      say "Removing a container throws away the changes made inside it, like your"
+      say "hi.txt. The image it started from stays."
+      say ""
+      say "${bold}Your task:${reset} stop and remove the web container. Then:  tutorial check"
+      ;;
+    7)
+      say "A ${bold}Dockerfile${reset} is the recipe for an image. ~/hello-web has one:"
+      cmd "cd ~/hello-web"
+      cmd "cat Dockerfile" ; say "      FROM a base image, COPY in your page"
+      cmd "nano index.html" ; say "      make the page yours (Ctrl+O saves, Ctrl+X exits)"
+      cmd "docker build -t hello-web ." ; say "      build it and name (tag) it hello-web"
+      say ""
+      say "${bold}Your task:${reset} build the image hello-web. Then:  tutorial check"
+      ;;
+    8)
+      cmd "docker run -d --name site -p 8081:80 hello-web"
+      cmd "curl localhost:8081" ; say "      your page, served from your own image"
+      say ""
+      say "Changed the page? Build again, then replace the container:"
+      cmd "docker rm -f site"
+      say ""
+      say "${bold}Your task:${reset} run your image as a container named site, on port 8081."
+      say "Then:  tutorial check"
+      ;;
+    9)
+      say "Files written inside a container vanish with it. A ${bold}volume${reset} is storage"
+      say "that outlives containers; mount it with -v name:/path."
+      cmd "docker volume create notes"
+      cmd "docker run --rm -v notes:/data alpine sh -c 'date >> /data/log'"
+      cmd "docker run --rm -v notes:/data alpine cat /data/log"
+      say "      (--rm removes each container when it finishes; the data stays)"
+      say ""
+      say "${bold}Your task:${reset} create a volume called notes and save a file in it from a"
+      say "container. Then:  tutorial check"
+      ;;
+    10)
+      say "Apps are often several containers. ${bold}Compose${reset} starts them together from a"
+      say "compose.yaml file, on a network where they find each other by name."
+      cmd "cd ~/compose-demo"
+      cmd "cat compose.yaml"
+      cmd "docker compose up -d" ; say "      start every service"
+      cmd "docker compose ps"
+      cmd "docker compose logs checker" ; say "      checker reaches web by its name"
+      say ""
+      say "${bold}Your task:${reset} start the compose-demo services. Then:  tutorial check"
+      ;;
+    11)
+      cmd "docker compose down" ; say "      (in ~/compose-demo) stop and remove its containers"
+      cmd "docker ps" ; say "      what is still running?"
+      cmd "docker stop site" ; say "      stop the rest"
+      cmd "docker container prune" ; say "      remove all stopped containers"
+      cmd "docker system df" ; say "      how much space images, containers and volumes use"
+      say ""
+      say "${bold}Your task:${reset} leave no container running. Then:  tutorial check"
+      ;;
+  esac
+}
+
+lesson_hint() {
+  case "$1" in
+    1) say "Type: docker run hello-world" ;;
+    2) say "docker images lists every image with its size; the smallest is only a few kB." ;;
+    3) say "docker run --rm alpine cat /etc/alpine-release prints it without a shell." ;;
+    4) say "docker run -d --name web -p 8080:80 nginx:alpine-slim (if the name is taken: docker rm -f web)" ;;
+    5) say "docker exec web sh -c 'echo hello > /usr/share/nginx/html/hi.txt'" ;;
+    6) say "docker stop web && docker rm web" ;;
+    7) say "cd ~/hello-web && docker build -t hello-web ." ;;
+    8) say "docker run -d --name site -p 8081:80 hello-web" ;;
+    9) say "docker volume create notes && docker run --rm -v notes:/data alpine sh -c 'echo hi > /data/note'" ;;
+    10) say "cd ~/compose-demo && docker compose up -d" ;;
+    11) say "cd ~/compose-demo && docker compose down; docker stop \$(docker ps -q)" ;;
+  esac
+}
+
+# Prints nothing and succeeds when the lesson is complete; otherwise prints
+# what is missing.
+lesson_check() {
+  case "$1" in
+    1)
+      [ -n "$(docker ps -a -q --filter ancestor=hello-world)" ] || { say "No hello-world container has run yet."; return 1; }
+      ;;
+    4)
+      running web || { say "No container named web is running."; return 1; }
+      curl -sf localhost:8080 > /dev/null || { say "Nothing answers on port 8080. Did you use -p 8080:80?"; return 1; }
+      ;;
+    5)
+      running web || { say "The web container isn't running (docker start web)."; return 1; }
+      curl -sf localhost:8080/hi.txt > /dev/null || { say "curl localhost:8080/hi.txt doesn't find it yet."; return 1; }
+      ;;
+    6)
+      if docker inspect web > /dev/null 2>&1; then
+        if running web; then say "web is still running."; else say "web is stopped, but still exists (docker ps -a)."; fi
+        return 1
+      fi
+      ;;
+    7)
+      docker image inspect hello-web > /dev/null 2>&1 || { say "There is no image called hello-web yet."; return 1; }
+      ;;
+    8)
+      running site || { say "No container named site is running."; return 1; }
+      [ "$(docker inspect -f '{{.Config.Image}}' site)" = hello-web ] || { say "site doesn't run the hello-web image."; return 1; }
+      curl -sf localhost:8081 > /dev/null || { say "Nothing answers on port 8081."; return 1; }
+      ;;
+    9)
+      docker volume inspect notes > /dev/null 2>&1 || { say "There is no volume called notes yet."; return 1; }
+      docker run --rm -v notes:/data alpine sh -c '[ -n "$(ls -A /data)" ]' || { say "The notes volume is empty."; return 1; }
+      ;;
+    10)
+      [ "$(docker ps -q --filter label=com.docker.compose.project=compose-demo | wc -l)" -ge 2 ] || { say "The compose-demo services aren't both running."; return 1; }
+      ;;
+    11)
+      [ -z "$(docker ps -q)" ] || { say "Still running: $(docker ps --format '{{.Names}}' | paste -sd ' ')"; return 1; }
+      ;;
+    *)
+      say "This lesson is checked with:  tutorial answer <your answer>"
+      return 1
+      ;;
+  esac
+}
+
+lesson_answer() {
+  case "$1" in
+    2) echo "hello-world" ;;
+    3) docker run --rm alpine cat /etc/alpine-release 2>/dev/null ;;
+  esac
+}
+
+show() {
+  local n
+  n=$(current)
+  if [ "$n" -gt "$LAST" ]; then
+    say "${green}${bold}You finished the tutorial. Well done!${reset}"
+    say "Keep exploring: write a Dockerfile for a program of your own, or, online,"
+    say "docker pull python:3-alpine and run it. (tutorial reset starts over.)"
+    return
+  fi
+  say ""
+  say "${bold}Lesson $n of $LAST: ${TITLES[$n]}${reset}"
+  say ""
+  lesson_text "$n"
+  say ""
+  say "${dim}tutorial hint · tutorial check · tutorial list${reset}"
+}
+
+advance() {
+  local n=$1
+  say "${green}${bold}✓ Correct!${reset}"
+  save $((n + 1))
+  show
+}
+
+case "${1:-}" in
+  "" | show) show ;;
+  check)
+    n=$(current)
+    [ "$n" -le "$LAST" ] || { show; exit 0; }
+    say "${dim}Checking…${reset}"
+    if output=$(lesson_check "$n"); then advance "$n"; else say "${yellow}Not yet:${reset} $output"; fi
+    ;;
+  answer)
+    n=$(current)
+    shift
+    given="$*"
+    expected=$(lesson_answer "$n")
+    if [ -z "$expected" ]; then
+      say "This lesson is checked with:  tutorial check"
+    elif [ "${given%:latest}" = "$expected" ]; then
+      advance "$n"
+    else
+      say "${yellow}Not quite.${reset} Try again, or run:  tutorial hint"
+    fi
+    ;;
+  hint) lesson_hint "$(current)" ;;
+  list)
+    n=$(current)
+    for i in $(seq 1 "$LAST"); do
+      if [ "$i" -lt "$n" ]; then mark="${green}✓${reset}"; elif [ "$i" -eq "$n" ]; then mark="${cyan}▶${reset}"; else mark=" "; fi
+      printf ' %s %2d. %s\n' "$mark" "$i" "${TITLES[$i]}"
+    done
+    ;;
+  go)
+    if [[ "${2:-}" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] && [ "$2" -le "$LAST" ]; then save "$2"; show; else say "usage: tutorial go <1-$LAST>"; fi
+    ;;
+  reset) save 1; show ;;
+  *) say "usage: tutorial [check | answer <text> | hint | list | go <n> | reset]" ;;
+esac

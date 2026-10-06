@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Opcode: write and run Python, JavaScript, C, C++, Rust, Go, PHP and Bash in your browser, with a real terminal. Nothing to install." />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <title>Opcode</title>
+  <script>
+    // Light or dark before anything paints (see src/lib/stores/theme.svelte.js).
+    try {
+      const saved = localStorage.getItem('opcode-theme')
+      document.documentElement.dataset.theme = saved === 'light' || saved === 'dark' ? saved : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    } catch {
+      document.documentElement.dataset.theme = 'light'
+    }
+  </script>
+  <script>
+    // Hosts that cannot send the cross-origin isolation headers get them
+    // from a service worker instead (see public/coi-serviceworker.js).
+    if (!window.crossOriginIsolated && window.isSecureContext && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('coi-serviceworker.js').then(() => {
+        if (!sessionStorage.getItem('opcode-coi-reloaded')) {
+          sessionStorage.setItem('opcode-coi-reloaded', '1')
+          location.reload()
+        }
+      }).catch((error) => console.warn('Could not enable cross-origin isolation:', error))
+    }
+  </script>
+  <!-- This site's settings (relay, preview host): see public/config.js. -->
+  <script src="/config.js"></script>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

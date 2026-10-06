@@ -1,0 +1,4 @@
+{
+  "storage-driver": "overlay2",
+  "ip6tables": false
+}

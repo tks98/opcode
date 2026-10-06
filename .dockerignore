@@ -1,0 +1,22 @@
+# Not needed to build the image (some are large)
+.git
+node_modules
+dist
+dist-*
+test-results
+playwright-report
+.lab
+*.log
+toolchains/linux/out
+toolchains/linux/out-docker
+
+# Made again by `npm run build` (see .gitignore)
+public/toolchains/rust
+public/toolchains/csharp
+public/toolchains/java/jdk.tar.gz
+public/toolchains/java/javac-sdk.bin
+public/toolchains/java/jdk.json
+public/toolchains/ruby.wasm.gz
+public/toolchains/typescript
+public/toolchains/webr
+public/toolchains/*.version

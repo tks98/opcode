@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check, test and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          # The JDK scripts/fetch-java.mjs builds Java's runtime files from (~210 MB),
+          # and the NuGet packages scripts/fetch-csharp.mjs builds C#'s from.
+          path: |
+            node_modules/.cache/opcode-java
+            node_modules/.cache/opcode-csharp
+          key: toolchains-${{ hashFiles('scripts/fetch-java.mjs', 'scripts/fetch-csharp.mjs') }}
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+
+  e2e:
+    name: End-to-end (Chromium)
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          # The JDK scripts/fetch-java.mjs builds Java's runtime files from (~210 MB),
+          # and the NuGet packages scripts/fetch-csharp.mjs builds C#'s from.
+          path: |
+            node_modules/.cache/opcode-java
+            node_modules/.cache/opcode-csharp
+          key: toolchains-${{ hashFiles('scripts/fetch-java.mjs', 'scripts/fetch-csharp.mjs') }}
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: test-results
+          retention-days: 7
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: opcode:ci
+      - name: Serve it, and check the headers, settings and compressed files
+        run: |
+          docker run -d --name opcode -p 8080:8080 -e OPCODE_RELAY=on -e OPCODE_PREVIEW_HOST='http://*.localhost:8080/' opcode:ci
+          for i in $(seq 30); do curl -sf -o /dev/null http://localhost:8080/ && break; sleep 1; done
+          curl -sfI http://localhost:8080/ | grep -i '^cross-origin-embedder-policy: require-corp'
+          curl -sf http://localhost:8080/config.js | grep '"relay": "/wisp/"'
+          curl -sfI -H 'Host: p1.localhost:8080' http://localhost:8080/.wasmer/host.html | grep -i '^cross-origin-resource-policy: cross-origin'
+          llvm=$(docker exec opcode ls dist/assets | grep '^llvm.core')
+          curl -sfI -H 'Accept-Encoding: br' "http://localhost:8080/assets/$llvm" | grep -i '^content-encoding: br'
+      - if: failure()
+        run: docker logs opcode

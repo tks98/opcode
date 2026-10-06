@@ -1,0 +1,244 @@
+diff --git a/ristretto_classloader/Cargo.toml b/ristretto_classloader/Cargo.toml
+index 5631dff..6366c4a 100644
+--- a/ristretto_classloader/Cargo.toml
++++ b/ristretto_classloader/Cargo.toml
+@@ -46,7 +46,8 @@ walkdir = { workspace = true }
+ [target.'cfg(target_family = "wasm")'.dependencies]
+ tokio = { workspace = true }
+ 
+-[target.'cfg(target_os = "wasi")'.dependencies]
++# WASI preview 1 hosts (e.g. Wasmer) have no wasi:http; the JDK is supplied.
++[target.'cfg(all(target_os = "wasi", target_env = "p2"))'.dependencies]
+ wstd = { workspace = true }
+ 
+ [dev-dependencies]
+diff --git a/ristretto_classloader/src/runtime/http.rs b/ristretto_classloader/src/runtime/http.rs
+index 5977c1c..0ea6bf7 100644
+--- a/ristretto_classloader/src/runtime/http.rs
++++ b/ristretto_classloader/src/runtime/http.rs
+@@ -54,9 +54,20 @@ pub(crate) async fn get_bytes(
+     headers: &Headers,
+     query: &[(&str, &str)],
+ ) -> Result<Vec<u8>> {
+-    let url = build_url(url, query);
+-    let headers = headers.clone();
+-    wstd::runtime::block_on(async move { fetch_bytes(&url, &headers).await })
++    #[cfg(target_env = "p2")]
++    {
++        let url = build_url(url, query);
++        let headers = headers.clone();
++        wstd::runtime::block_on(async move { fetch_bytes(&url, &headers).await })
++    }
++    #[cfg(not(target_env = "p2"))]
++    {
++        let _ = (headers, query);
++        Err(ristretto_classfile::Error::IoError(format!(
++            "cannot download {url}: no network access on WASI preview 1; supply the JDK with RISTRETTO_JDK_HOME"
++        ))
++        .into())
++    }
+ }
+ 
+ #[cfg(target_os = "wasi")]
+@@ -68,7 +79,7 @@ where
+     serde_json::from_slice::<T>(&bytes).map_err(|error| Error::SerdeError(error.to_string()))
+ }
+ 
+-#[cfg(target_os = "wasi")]
++#[cfg(all(target_os = "wasi", target_env = "p2"))]
+ fn build_url(url: &str, query: &[(&str, &str)]) -> String {
+     if query.is_empty() {
+         return url.to_string();
+@@ -82,7 +93,7 @@ fn build_url(url: &str, query: &[(&str, &str)]) -> String {
+     format!("{url}{separator}{pairs}")
+ }
+ 
+-#[cfg(target_os = "wasi")]
++#[cfg(all(target_os = "wasi", target_env = "p2"))]
+ fn urlencode(value: &str) -> String {
+     use std::fmt::Write;
+     let mut out = String::with_capacity(value.len());
+@@ -100,7 +111,7 @@ fn urlencode(value: &str) -> String {
+ }
+ 
+ /// Follow up to 10 redirects when fetching a URL via wstd, detecting cycles.
+-#[cfg(target_os = "wasi")]
++#[cfg(all(target_os = "wasi", target_env = "p2"))]
+ async fn fetch_bytes(initial_url: &str, headers: &Headers) -> Result<Vec<u8>> {
+     use std::collections::HashSet;
+     use wstd::http::{Body, Client, Request};
+@@ -159,7 +170,7 @@ async fn fetch_bytes(initial_url: &str, headers: &Headers) -> Result<Vec<u8>> {
+     )))
+ }
+ 
+-#[cfg(target_os = "wasi")]
++#[cfg(all(target_os = "wasi", target_env = "p2"))]
+ fn resolve_redirect(base: &str, location: &str) -> String {
+     if location.starts_with("http://") || location.starts_with("https://") {
+         return location.to_string();
+diff --git a/ristretto_intrinsics/src/java/io/fileinputstream.rs b/ristretto_intrinsics/src/java/io/fileinputstream.rs
+index 0cbbb46..b27d121 100644
+--- a/ristretto_intrinsics/src/java/io/fileinputstream.rs
++++ b/ristretto_intrinsics/src/java/io/fileinputstream.rs
+@@ -69,6 +69,11 @@ pub async fn available_0<T: Thread + 'static>(
+     let vm = thread.vm()?;
+     let file_handles = vm.file_handles();
+     let fd = file_descriptor_from_java_object(&vm, &file_descriptor)?;
++    // Standard input has no file handle; like a terminal, it reports nothing
++    // buffered (reads block until input arrives).
++    if fd == 0 {
++        return Ok(Some(Value::Int(0)));
++    }
+     let mut file_handle = file_handles
+         .get_mut(&fd)
+         .await
+diff --git a/ristretto_intrinsics/src/java/io/fileoutputstream.rs b/ristretto_intrinsics/src/java/io/fileoutputstream.rs
+index cce6411..587fe99 100644
+--- a/ristretto_intrinsics/src/java/io/fileoutputstream.rs
++++ b/ristretto_intrinsics/src/java/io/fileoutputstream.rs
+@@ -256,6 +256,11 @@ pub async fn write_bytes<T: Thread + 'static>(
+             stdout
+                 .write_all(&data)
+                 .map_err(|error| IoException(error.to_string()))?;
++            // FileOutputStream is unbuffered, so prompts written with print()
++            // appear before the program reads input.
++            stdout
++                .flush()
++                .map_err(|error| IoException(error.to_string()))?;
+         }
+         2 => {
+             let stderr_lock = vm.stderr();
+diff --git a/ristretto_java/src/main.rs b/ristretto_java/src/main.rs
+index 6f8903e..4e6d327 100644
+--- a/ristretto_java/src/main.rs
++++ b/ristretto_java/src/main.rs
+@@ -38,6 +38,12 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
+ #[tokio::main(flavor = "current_thread")]
+ async fn main() -> Result<()> {
+     startup_trace!("[cli] entry point");
++    // WASI processes start in "/"; begin where the shell is, so relative
++    // paths (the class path, files the program opens) work as usual.
++    #[cfg(target_os = "wasi")]
++    if let Some(pwd) = env::var_os("PWD") {
++        let _ = env::set_current_dir(pwd);
++    }
+     let cli = Arguments::parse();
+     logging::initialize()?;
+     startup_trace!("[cli] initialization");
+@@ -87,8 +93,18 @@ async fn common_main(mut cli: Arguments) -> Result<()> {
+ 
+     debug!("ristretto/{VERSION}/{OS}/{ARCH}");
+     let mut configuration_builder = ConfigurationBuilder::new();
+-    if let Some(ref class_path) = cli.classpath {
+-        let class_paths = env::split_paths(class_path).collect::<Vec<_>>();
++    // As in the JDK's launcher: -cp, else $CLASSPATH, else the current directory.
++    let class_path = cli
++        .classpath
++        .clone()
++        .or_else(|| env::var_os("CLASSPATH").filter(|value| !value.is_empty()))
++        .unwrap_or_else(|| ".".into());
++    {
++        #[cfg(not(target_family = "wasm"))]
++        let class_paths = env::split_paths(&class_path).collect::<Vec<_>>();
++        // WASI has no std::env::split_paths.
++        #[cfg(target_family = "wasm")]
++        let class_paths = class_path.to_string_lossy().split(':').map(PathBuf::from).collect::<Vec<_>>();
+         let class_path = ClassPath::from(&class_paths);
+         configuration_builder = configuration_builder.class_path(class_path);
+     }
+@@ -151,6 +167,24 @@ async fn common_main(mut cli: Arguments) -> Result<()> {
+     let parameters = cli.parameters.unwrap_or_default();
+     let result = match vm.invoke_main(&parameters).await {
+         Ok(_) => Ok(()),
++        // As the JDK's default uncaught exception handler does: the thread's
++        // name, then the throwable's own printStackTrace().
++        Err(Throwable(throwable)) => {
++            eprint!("Exception in thread \"main\" ");
++            let printed = vm
++                .invoke(
++                    "java.lang.Throwable",
++                    "printStackTrace()V",
++                    std::slice::from_ref(&throwable),
++                )
++                .await;
++            if printed.is_ok() {
++                Err(Throwable(throwable))
++            } else {
++                eprintln!();
++                process_error(Throwable(throwable))
++            }
++        }
+         Err(error) => process_error(error),
+     };
+ 
+@@ -176,31 +210,50 @@ fn process_error(error: Error) -> Result<()> {
+         let (class_name, message, stack_trace, cause) = {
+             let throwable_object = current_throwable.as_object_ref()?;
+             let class = throwable_object.class();
+-            let class_name = class.name().to_string();
++            let class_name = class.name().replace('/', ".");
++            // A null message is printed as the class name alone, as the JDK does.
+             let message = throwable_object
+                 .value("detailMessage")
+-                .and_then(|value| value.as_string())?;
+-            let stack_trace: Vec<Value> = throwable_object.value("backtrace")?.try_into()?;
++                .ok()
++                .filter(|value| !value.is_null())
++                .and_then(|value| value.as_string().ok());
++            // StackTraceElement[] (fillInStackTrace also leaves an internal "backtrace").
++            let stack_trace: Vec<Value> = throwable_object
++                .value("stackTrace")
++                .ok()
++                .and_then(|value| value.try_into().ok())
++                .unwrap_or_default();
+             let cause = throwable_object.value("cause")?;
+             (class_name, message, stack_trace, cause)
+         };
+ 
+         let prelude = if first_throwable {
+             first_throwable = false;
+-            "Exception"
++            "Exception in thread \"main\""
+         } else {
+-            "Caused by"
++            "Caused by:"
+         };
+-        eprintln!("{prelude} {class_name}: {message}");
++        match message {
++            Some(message) => eprintln!("{prelude} {class_name}: {message}"),
++            None => eprintln!("{prelude} {class_name}"),
++        }
+ 
++        // Skip the frames that constructed the exception, as the JDK does.
++        let mut constructing = true;
+         for stack_trace_element in stack_trace {
+             let Value::Object(Some(reference)) = stack_trace_element else {
+                 continue;
+             };
+             let guard = reference.read();
+-            let stack_trace_element = guard.as_object_ref()?;
+-            let class = stack_trace_element.value("declaringClass")?.as_string()?;
++            let Ok(stack_trace_element) = guard.as_object_ref() else {
++                continue;
++            };
++            let class = stack_trace_element.value("declaringClass")?.as_string()?.replace('/', ".");
+             let method = stack_trace_element.value("methodName")?.as_string()?;
++            if constructing && (method == "<init>" || method == "fillInStackTrace") {
++                continue;
++            }
++            constructing = false;
+ 
+             let mut source = String::new();
+             let file = stack_trace_element.value("fileName")?;
+@@ -216,9 +269,9 @@ fn process_error(error: Error) -> Result<()> {
+                 }
+             }
+             if source.is_empty() {
+-                eprintln!("    at {class}.{method}");
++                eprintln!("\tat {class}.{method}");
+             } else {
+-                eprintln!("    at {class}.{method}({source})");
++                eprintln!("\tat {class}.{method}({source})");
+             }
+         }
+ 

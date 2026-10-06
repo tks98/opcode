@@ -1,0 +1,5 @@
+# Netlify / Cloudflare Pages: Opcode's WebAssembly runtime needs a
+# cross-origin isolated page (SharedArrayBuffer).
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp

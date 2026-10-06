@@ -1,0 +1,5 @@
+# HTTPS in front of Opcode (see compose.yaml). Caddy passes requests on with
+# their host name, which tells Opcode's server the site from its preview host.
+{$OPCODE_DOMAIN}, preview.{$OPCODE_DOMAIN} {
+	reverse_proxy opcode:8080
+}

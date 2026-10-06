@@ -1,0 +1,8 @@
+#!/bin/sh
+# Ask Opcode to save this machine in the browser now (it also saves on its
+# own every few minutes and when you leave the page).
+if [ -p /run/opcode/request ]; then
+  timeout 2 sh -c 'echo save > /run/opcode/request' 2>/dev/null && exit 0
+fi
+echo "opcode-save: not running in Opcode" >&2
+exit 1

@@ -1,0 +1,13 @@
+# Two services: a web server, and a client that checks on it every few
+# seconds. Compose starts both and puts them on one network, where each
+# reaches the other by its service name.
+services:
+  web:
+    image: nginx:alpine-slim
+    ports:
+      - "8088:80"
+  checker:
+    image: busybox
+    command: sh -c 'while true; do wget -q -O /dev/null http://web/ && echo "web is up"; sleep 5; done'
+    depends_on:
+      - web

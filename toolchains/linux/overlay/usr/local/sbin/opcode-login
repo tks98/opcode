@@ -1,0 +1,3 @@
+#!/bin/sh
+# Log the student in automatically on the browser console.
+exec /bin/login -f student

@@ -1,0 +1,14 @@
+{
+  "v86": "0.5.470",
+  "memoryMB": 1024,
+  "hardware": 2,
+  "alpine": "3.24.2",
+  "created": "2026-10-06",
+  "snapshot": "f18d3e56d9fe8d90",
+  "files": [
+    "opcode-docker.state.1",
+    "opcode-docker.state.2",
+    "opcode-docker.state.3"
+  ],
+  "bytes": 139112177
+}

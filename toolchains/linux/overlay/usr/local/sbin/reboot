@@ -1,0 +1,13 @@
+#!/bin/sh
+# This machine runs from memory, so a reboot starts it fresh. Opcode does
+# that instantly; outside Opcode, fall back to a normal reboot.
+if [ "$(id -u)" -ne 0 ]; then echo "reboot: must be root (try: sudo reboot)" >&2; exit 1; fi
+action=$(basename "$0")
+[ "$action" = halt ] && action=poweroff
+if pgrep -f opcode-agent > /dev/null; then
+  echo "The system is going down for $action NOW!"
+  sync
+  echo "$action" > /dev/hvc1
+  sleep 10
+fi
+exec "/sbin/$action" "$@"

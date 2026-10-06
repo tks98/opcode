@@ -1,0 +1,44 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+dist-preview-host
+dist-compressed
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Test output
+test-results
+playwright-report
+
+# Downloaded by scripts/fetch-rust.mjs
+public/toolchains/rust/
+# Built from a pinned JDK by scripts/fetch-java.mjs
+public/toolchains/java/jdk.tar.gz
+public/toolchains/java/javac-sdk.bin
+public/toolchains/java/jdk.json
+# Built from pinned NuGet packages by scripts/fetch-csharp.mjs
+public/toolchains/csharp/
+# Copied from npm packages by scripts/copy-npm-toolchains.mjs
+public/toolchains/ruby.wasm.gz
+public/toolchains/typescript/
+public/toolchains/webr/
+public/toolchains/*.version

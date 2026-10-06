@@ -1,0 +1,40 @@
+# Opcode on your own domain, with HTTPS: browsers only run Opcode's
+# WebAssembly runtime on secure pages, so a public site needs it. Caddy
+# (deploy/Caddyfile) gets certificates from Let's Encrypt for the site and for
+# its web preview host, preview.<your domain>.
+#
+# Point DNS for both names at this machine, open ports 80 and 443, then:
+#
+#   OPCODE_DOMAIN=opcode.example.com docker compose up -d
+#
+# Add OPCODE_RELAY=on to give terminals and Linux machines internet access
+# through this server (read "Internet relay" in the README first).
+
+services:
+  opcode:
+    build: .
+    image: opcode
+    restart: unless-stopped
+    environment:
+      OPCODE_PREVIEW_HOST: https://preview.${OPCODE_DOMAIN:?set OPCODE_DOMAIN to your domain}/
+      OPCODE_RELAY: ${OPCODE_RELAY:-off}
+      OPCODE_RELAY_ARGS: ${OPCODE_RELAY_ARGS:-}
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [opcode]
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    environment:
+      OPCODE_DOMAIN: ${OPCODE_DOMAIN:?set OPCODE_DOMAIN to your domain}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,300 @@
+#!/bin/bash
+# tutorial - a hands-on introduction to the Linux terminal.
+#
+#   tutorial          show the current lesson
+#   tutorial check    check your work and move on
+#   tutorial hint     get a hint
+#   tutorial list     list all lessons
+#   tutorial go N     jump to lesson N
+#   tutorial reset    start over
+
+PROGRESS="$HOME/.tutorial-progress"
+T="$HOME/tutorial"
+
+bold=$'\e[1m' dim=$'\e[2m' green=$'\e[32m' yellow=$'\e[33m' cyan=$'\e[36m' reset=$'\e[0m'
+
+TITLES=(
+  ""
+  "Where am I?"
+  "Hidden files"
+  "Moving around"
+  "Making folders and files"
+  "Writing to files"
+  "Copy, move and delete"
+  "Permissions"
+  "Searching inside files"
+  "Pipes"
+  "Processes"
+  "The superuser"
+  "Reading the manual"
+)
+LAST=$((${#TITLES[@]} - 1))
+
+current() {
+  local n
+  n=$(cat "$PROGRESS" 2>/dev/null)
+  [[ "$n" =~ ^[0-9]+$ ]] && [ "$n" -ge 1 ] && echo "$n" || echo 1
+}
+# Progress lives in the machine; ask Opcode to save the machine too.
+save() { echo "$1" > "$PROGRESS"; opcode-save > /dev/null 2>&1 & }
+say() { printf '%s\n' "$@"; }
+cmd() { printf '    %s$ %s%s\n' "$cyan" "$1" "$reset"; }
+
+lesson_text() {
+  case "$1" in
+    1)
+      say "Linux organizes everything into directories (folders). Your terminal is"
+      say "always \"in\" one of them: the working directory."
+      say ""
+      say "Try these commands:"
+      cmd "pwd" ; say "      prints the working directory"
+      cmd "ls" ; say "      lists what is in it"
+      cmd "ls tutorial" ; say "      lists what is in the tutorial directory"
+      say ""
+      say "${bold}Your task:${reset} find out the name of your home directory (pwd shows it),"
+      say "then answer with:  tutorial answer <path>"
+      ;;
+    2)
+      say "Names starting with a dot are hidden; plain ls doesn't show them."
+      say ""
+      cmd "ls -a tutorial" ; say "      -a shows all files, including hidden ones"
+      cmd "cat tutorial/.secret" ; say "      cat prints a file's contents"
+      say ""
+      say "${bold}Your task:${reset} read the hidden file in ~/tutorial and answer with the"
+      say "secret word:  tutorial answer <word>"
+      ;;
+    3)
+      say "cd changes the working directory. Some shortcuts:"
+      cmd "cd tutorial/maze" ; say "      go into a directory (a relative path)"
+      cmd "cd .." ; say "      go up one level"
+      cmd "cd ~" ; say "      go home (cd on its own does the same)"
+      cmd "cd /etc" ; say "      go to an absolute path (starting with /)"
+      say ""
+      say "Tip: press Tab to complete names, and ↑ to repeat earlier commands."
+      say ""
+      say "${bold}Your task:${reset} somewhere inside ~/tutorial/maze is a file called"
+      say "treasure.txt. Find it, read it, and answer with the word inside."
+      ;;
+    4)
+      cmd "mkdir projects" ; say "      makes a directory"
+      cmd "touch projects/notes.txt" ; say "      creates an empty file (or updates its time)"
+      say ""
+      say "${bold}Your task:${reset} create a directory ~/projects containing an empty file"
+      say "called notes.txt, then run:  tutorial check"
+      ;;
+    5)
+      say "> sends a command's output into a file (replacing it); >> appends."
+      cmd "echo \"Hello, Linux\" > projects/notes.txt"
+      cmd "echo \"Another line\" >> projects/notes.txt"
+      cmd "cat projects/notes.txt"
+      say ""
+      say "Prefer an editor? Try ${bold}nano projects/notes.txt${reset} (Ctrl+O saves, Ctrl+X exits)."
+      say ""
+      say "${bold}Your task:${reset} make ~/projects/notes.txt contain at least two lines, one of"
+      say "which includes the word Linux. Then:  tutorial check"
+      ;;
+    6)
+      cmd "cp a.txt b.txt" ; say "      copy"
+      cmd "mv b.txt docs/" ; say "      move (or rename: mv old new)"
+      cmd "rm old.txt" ; say "      delete a file (there is no recycle bin!)"
+      cmd "rmdir empty-dir" ; say "      delete an empty directory (rm -r for full ones)"
+      say ""
+      say "${bold}Your task:${reset} in ~/projects:"
+      say "  1. make a directory called backup"
+      say "  2. copy notes.txt into backup/"
+      say "  3. rename ~/tutorial/draft.txt to ~/projects/final.txt"
+      say "  4. delete ~/tutorial/junk.txt"
+      say "Then:  tutorial check"
+      ;;
+    7)
+      say "Every file has an owner and permissions: read (r), write (w), execute (x),"
+      say "for the owner, the group and everyone else. See them with ls -l."
+      cmd "ls -l ~/tutorial/hello.sh"
+      cmd "chmod +x ~/tutorial/hello.sh" ; say "      make it executable"
+      cmd "~/tutorial/hello.sh" ; say "      run it"
+      say ""
+      say "${bold}Your task:${reset} make ~/tutorial/hello.sh executable, run it, and answer"
+      say "with the word it prints:  tutorial answer <word>"
+      ;;
+    8)
+      say "grep searches for text inside files; -r searches a whole directory."
+      cmd "grep -r needle ~/tutorial/haystack"
+      cmd "grep -rl needle ~/tutorial/haystack" ; say "      -l: only print file names"
+      say ""
+      say "${bold}Your task:${reset} exactly one file in ~/tutorial/haystack contains the word"
+      say "needle. Answer with its file name:  tutorial answer <file-name>"
+      ;;
+    9)
+      say "The pipe | sends one command's output into another command."
+      cmd "cat /etc/passwd" ; say "      the list of user accounts, one per line"
+      cmd "cat /etc/passwd | wc -l" ; say "      wc -l counts lines"
+      cmd "ls /bin | grep z" ; say "      programs in /bin with a z in their name"
+      say ""
+      say "${bold}Your task:${reset} how many lines does /etc/passwd have?"
+      say "Answer with the number:  tutorial answer <number>"
+      ;;
+    10)
+      say "Every running program is a process with a number (PID)."
+      cmd "ps aux" ; say "      list all processes"
+      cmd "top" ; say "      live view (press q to quit); htop is a friendlier one"
+      cmd "kill <PID>" ; say "      ask a process to stop (kill -9 forces it)"
+      say ""
+      say "Long-running commands: press Ctrl+C to stop one, or add & to run it in"
+      say "the background, then use jobs, fg and kill %1."
+      say ""
+      say "${bold}Your task:${reset} this lesson started a process called ${bold}runaway${reset}."
+      say "Find its PID and stop it. Then:  tutorial check"
+      ;;
+    11)
+      say "Some actions need administrator (root) rights. sudo runs one command as"
+      say "root; it asks for your password (student)."
+      cmd "ls -l /opt" ; say "      /opt belongs to root"
+      cmd "touch /opt/test" ; say "      permission denied!"
+      cmd "sudo touch /opt/test" ; say "      works"
+      cmd "whoami; sudo whoami"
+      say ""
+      say "${bold}Your task:${reset} create a directory /opt/class (it needs sudo). Then:"
+      say "tutorial check"
+      ;;
+    12)
+      say "Almost every command has a manual page. In man, use the arrow keys or"
+      say "Space to scroll, / to search, and q to quit."
+      cmd "man ls"
+      cmd "ls --help" ; say "      a shorter summary"
+      say ""
+      say "${bold}Your task:${reset} use man ls to find the ls option that sorts files by"
+      say "modification time (newest first). Answer with it:  tutorial answer -?"
+      ;;
+  esac
+}
+
+lesson_hint() {
+  case "$1" in
+    1) say "Run pwd. The answer starts with /home." ;;
+    2) say "ls -a ~/tutorial shows a file whose name starts with a dot. cat it." ;;
+    3) say "Use cd and ls to explore the maze one directory at a time, or try: find ~/tutorial/maze -name treasure.txt" ;;
+    4) say "mkdir ~/projects && touch ~/projects/notes.txt" ;;
+    5) say "echo \"Hello, Linux\" > ~/projects/notes.txt; echo \"more\" >> ~/projects/notes.txt" ;;
+    6) say "cd ~/projects; mkdir backup; cp notes.txt backup/; mv ~/tutorial/draft.txt final.txt; rm ~/tutorial/junk.txt" ;;
+    7) say "chmod +x ~/tutorial/hello.sh, then run ~/tutorial/hello.sh" ;;
+    8) say "grep -rl needle ~/tutorial/haystack prints the path; answer with just the file name." ;;
+    9) say "wc -l < /etc/passwd prints just the number." ;;
+    10) say "ps aux | grep runaway shows its PID (the first number). Then kill <PID>." ;;
+    11) say "sudo mkdir /opt/class (password: student)" ;;
+    12) say "Search inside man with /time and press n for the next match." ;;
+  esac
+}
+
+# Prints nothing and succeeds when the lesson is complete; otherwise prints
+# what is missing.
+lesson_check() {
+  case "$1" in
+    4)
+      [ -d "$HOME/projects" ] || { say "~/projects doesn't exist yet."; return 1; }
+      [ -f "$HOME/projects/notes.txt" ] || { say "~/projects/notes.txt doesn't exist yet."; return 1; }
+      ;;
+    5)
+      local file="$HOME/projects/notes.txt"
+      [ -f "$file" ] || { say "~/projects/notes.txt is missing."; return 1; }
+      [ "$(wc -l < "$file")" -ge 2 ] || { say "notes.txt needs at least two lines."; return 1; }
+      grep -q Linux "$file" || { say "None of the lines contain the word Linux."; return 1; }
+      ;;
+    6)
+      [ -f "$HOME/projects/backup/notes.txt" ] || { say "~/projects/backup/notes.txt is missing."; return 1; }
+      [ -f "$HOME/projects/notes.txt" ] || { say "Copy notes.txt, don't move it: ~/projects/notes.txt should still exist."; return 1; }
+      [ -f "$HOME/projects/final.txt" ] || { say "~/projects/final.txt is missing."; return 1; }
+      [ ! -e "$T/draft.txt" ] || { say "~/tutorial/draft.txt still exists (move it, don't copy it)."; return 1; }
+      [ ! -e "$T/junk.txt" ] || { say "~/tutorial/junk.txt still exists."; return 1; }
+      ;;
+    10)
+      if pgrep -f runaway > /dev/null; then say "runaway is still running."; return 1; fi
+      ;;
+    11)
+      [ -d /opt/class ] || { say "/opt/class doesn't exist yet."; return 1; }
+      ;;
+    *)
+      say "This lesson is checked with:  tutorial answer <your answer>"
+      return 1
+      ;;
+  esac
+}
+
+lesson_answer() {
+  case "$1" in
+    1) echo "$HOME" ;;
+    2) echo "penguin" ;;
+    3) echo "kernel" ;;
+    7) echo "executable" ;;
+    8) echo "file-23.txt" ;;
+    9) wc -l < /etc/passwd ;;
+    12) echo "-t" ;;
+  esac
+}
+
+start_lesson() {
+  # Lesson 10 needs something to stop.
+  if [ "$1" = 10 ] && ! pgrep -f runaway > /dev/null; then
+    (exec -a runaway sh -c 'while :; do sleep 1; done') > /dev/null 2>&1 &
+    disown 2>/dev/null
+  fi
+}
+
+show() {
+  local n
+  n=$(current)
+  if [ "$n" -gt "$LAST" ]; then
+    say "${green}${bold}You finished the tutorial. Well done!${reset}"
+    say "Keep exploring: try htop, vim, tmux, git, or read man bash."
+    say "(tutorial reset starts over.)"
+    return
+  fi
+  start_lesson "$n"
+  say ""
+  say "${bold}Lesson $n of $LAST: ${TITLES[$n]}${reset}"
+  say ""
+  lesson_text "$n"
+  say ""
+  say "${dim}tutorial hint · tutorial check · tutorial list${reset}"
+}
+
+advance() {
+  local n=$1
+  say "${green}${bold}✓ Correct!${reset}"
+  save $((n + 1))
+  show
+}
+
+case "${1:-}" in
+  "" | show) show ;;
+  check)
+    n=$(current)
+    [ "$n" -le "$LAST" ] || { show; exit 0; }
+    if output=$(lesson_check "$n"); then advance "$n"; else say "${yellow}Not yet:${reset} $output"; fi
+    ;;
+  answer)
+    n=$(current)
+    shift
+    given="$*"
+    expected=$(lesson_answer "$n")
+    if [ -z "$expected" ]; then
+      say "This lesson is checked with:  tutorial check"
+    elif [ "${given%/}" = "$expected" ] || [ "${given%.txt}" = "${expected%.txt}" ]; then
+      advance "$n"
+    else
+      say "${yellow}Not quite.${reset} Try again, or run:  tutorial hint"
+    fi
+    ;;
+  hint) lesson_hint "$(current)" ;;
+  list)
+    n=$(current)
+    for i in $(seq 1 "$LAST"); do
+      if [ "$i" -lt "$n" ]; then mark="${green}✓${reset}"; elif [ "$i" -eq "$n" ]; then mark="${cyan}▶${reset}"; else mark=" "; fi
+      printf ' %s %2d. %s\n' "$mark" "$i" "${TITLES[$i]}"
+    done
+    ;;
+  go)
+    if [[ "${2:-}" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] && [ "$2" -le "$LAST" ]; then save "$2"; show; else say "usage: tutorial go <1-$LAST>"; fi
+    ;;
+  reset) save 1; show ;;
+  *) say "usage: tutorial [check | answer <text> | hint | list | go <n> | reset]" ;;
+esac

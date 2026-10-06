@@ -1,0 +1,32 @@
+#!/bin/sh
+# Early boot for Opcode Linux: the whole system runs from RAM (initramfs).
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev 2>/dev/null
+mkdir -p /dev/pts /dev/shm
+mount -t devpts devpts /dev/pts -o gid=5,mode=620
+mount -t tmpfs tmpfs /dev/shm -o mode=1777
+mount -t tmpfs tmpfs /run -o mode=755
+mount -t tmpfs tmpfs /tmp -o mode=1777
+hostname -F /etc/hostname
+hwclock -s -u 2>/dev/null
+ip link set lo up 2>/dev/null
+# Keep kernel messages off the console; students can read them with dmesg.
+dmesg -n 1
+# Network: Opcode's emulator answers DHCP itself and relays connections to
+# the internet when a relay is set up (otherwise they simply fail).
+for module in failover net_failover virtio_net af_packet; do
+  insmod "/lib/modules/opcode/$module.ko" 2>/dev/null
+done
+if ip link set eth0 up 2>/dev/null; then
+  udhcpc -i eth0 -q -n -t 5 -T 1 -s /usr/share/udhcpc/default.script > /dev/null 2>&1
+fi
+# Opcode Docker machines start Docker here.
+if [ -x /usr/local/sbin/opcode-docker ]; then
+  /usr/local/sbin/opcode-docker
+fi
+# Requests from programs to the app (e.g. the tutorial asks it to save).
+mkdir -p /run/opcode
+mkfifo -m 622 /run/opcode/request
+# Host channel (time sync, reboot and save requests).
+/usr/local/sbin/opcode-agent > /dev/null 2>&1 &

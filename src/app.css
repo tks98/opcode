@@ -1,0 +1,352 @@
+/*
+  Opcode's design tokens and base styles (see DESIGN.md).
+
+  One typeface, Recursive, does everything: its MONO axis turns it into the
+  code font and its CASL axis into the friendly heading voice. Colours come
+  from a "notebook": ink on graph paper by day, a blueprint by night, with a
+  yellow highlighter as the one loud accent.
+*/
+
+/* Recursive's monospace style as a font of its own (scripts/make-mono-font.py). */
+@font-face {
+  font-family: 'Recursive Mono';
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url('./assets/fonts/RecursiveMono.woff2') format('woff2');
+}
+
+:root {
+  color-scheme: light;
+
+  --bg: #f5f8fc;
+  --grid: rgb(47 111 181 / 0.08);
+  --bar: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #eef3f9;
+  --ink: #1b2b4b;
+  --muted: #56647c;
+  --line: #d3deec;
+  --line-strong: #1b2b4b;
+  --selected: rgb(255 216 77 / 0.45);
+  --hover: rgb(47 111 181 / 0.08);
+  --highlight: #ffd84d;
+  --highlight-ink: #1b2b4b;
+  --shadow: #1b2b4b;
+  --focus: #2f6fb5;
+  --link: #2f6fb5;
+  --ok: #2e7d32;
+  --warn: #8a5a00;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --overlay: rgb(27 43 75 / 0.45);
+  --pop-border: #1b2b4b;
+  --pop-shadow: #1b2b4b;
+
+  --font: 'Recursive Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-code: 'Recursive Mono', ui-monospace, 'DejaVu Sans Mono', Menlo, Consolas, monospace;
+  --ui: 'CASL' 0, 'MONO' 0;
+  --casual: 'CASL' 1, 'MONO' 0;
+  --mono: 'CASL' 0, 'MONO' 1;
+
+  --radius-s: 8px;
+  --radius: 10px;
+  --radius-l: 14px;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #0e2440;
+  --grid: rgb(140 190 255 / 0.09);
+  --bar: #0b1f38;
+  --surface: #13304f;
+  --surface-2: #183a5e;
+  --ink: #eaf2ff;
+  --muted: #a9beda;
+  --line: #2a4f78;
+  --line-strong: #ffd84d;
+  --selected: rgb(255 216 77 / 0.16);
+  --hover: rgb(140 190 255 / 0.1);
+  --shadow: #050f1e;
+  --focus: #8cc8ff;
+  --link: #8cc8ff;
+  --ok: #7fe0a0;
+  --warn: #ffd84d;
+  --danger: #ff8a80;
+  --danger-soft: rgb(255 138 128 / 0.12);
+  --overlay: rgb(3 10 22 / 0.6);
+  --pop-border: #5d86b5;
+  --pop-shadow: #050f1e;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  font-variation-settings: var(--ui);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  color: inherit;
+  font: inherit;
+  font-variation-settings: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-code);
+  font-variation-settings: var(--mono);
+}
+
+a {
+  color: var(--link);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--selected);
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 650;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.12s, border-color 0.12s, transform 0.08s, box-shadow 0.08s;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+}
+
+.btn-icon {
+  width: 40px;
+  padding: 0;
+}
+
+.btn-small {
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 9px;
+  font-size: 14px;
+}
+
+.btn-small.btn-icon {
+  width: 32px;
+}
+
+.btn-quiet {
+  border-color: transparent;
+  background: transparent;
+}
+
+.btn-quiet:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--hover);
+}
+
+/* The yellow highlighter button: Run, Start. */
+.btn-primary {
+  border-color: var(--highlight-ink);
+  background: var(--highlight);
+  color: var(--highlight-ink);
+  box-shadow: 0 3px 0 var(--highlight-ink);
+  font-weight: 800;
+  font-variation-settings: var(--casual);
+}
+
+.btn-primary:hover:not(:disabled) {
+  border-color: var(--highlight-ink);
+  background: #ffe27a;
+}
+
+.btn-primary:active:not(:disabled) {
+  box-shadow: 0 1px 0 var(--highlight-ink);
+  transform: translateY(2px);
+}
+
+.btn-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+  }
+
+  .btn-icon {
+    width: 44px;
+  }
+}
+
+/* ---------- Popovers, menus and dialogs ---------- */
+
+.popover {
+  position: absolute;
+  z-index: 60;
+  padding: 8px;
+  border: 2px solid var(--pop-border);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  box-shadow: 0 6px 0 var(--pop-shadow);
+  color: var(--ink);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.menu-item:hover:not(:disabled),
+.menu-item:focus-visible {
+  background: var(--hover);
+}
+
+.menu-item:focus-visible {
+  outline-offset: -2px;
+}
+
+.menu-item:disabled {
+  opacity: 0.5;
+}
+
+.menu-item .shortcut {
+  margin-left: auto;
+  padding-left: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.menu-separator {
+  height: 2px;
+  margin: 6px 4px;
+  border: 0;
+  background: var(--line);
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--overlay);
+}
+
+.dialog {
+  width: 520px;
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 22px 24px;
+  border: 2px solid var(--pop-border);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  box-shadow: 0 8px 0 var(--pop-shadow);
+  color: var(--ink);
+}
+
+.dialog h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 780;
+  font-variation-settings: var(--casual);
+}
+
+/* A language's colour mark (set --mark). */
+.mark {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--mark, var(--muted));
+}
+
+/* Visually hidden, still read by screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

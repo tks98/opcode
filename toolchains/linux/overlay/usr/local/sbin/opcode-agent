@@ -1,0 +1,50 @@
+#!/bin/sh
+# Talks to the Opcode app over the second virtio console port: the app sends
+# the current time after restoring a saved machine, and reboot/poweroff
+# requests go the other way (see /usr/local/sbin/reboot), as do lines
+# written to /run/opcode/request (e.g. "save", see opcode-save) and the
+# ports servers listen on.
+# Virtio console port 1 is a console port, so it appears as /dev/hvc1.
+port=/dev/hvc1
+for _ in $(seq 100); do [ -c "$port" ] && break; sleep 0.1; done
+[ -c "$port" ] || exit 0
+exec 3<>"$port"
+stty raw -echo <&3 2>/dev/null
+if [ -p /run/opcode/request ]; then
+  (while :; do cat /run/opcode/request; done | while read -r line; do
+    case "$line" in save) echo save >&3 ;; esac
+  done) &
+fi
+# Servers the app can preview: TCP ports listening on every address,
+# reported ("ports 8000 8080") whenever they change. The app asks again
+# ("ports") after restoring a machine.
+listening=/run/opcode/listening
+(while :; do
+  ports=
+  for table in /proc/net/tcp /proc/net/tcp6; do
+    [ -r "$table" ] || continue
+    while read -r _ address _ state _; do
+      [ "$state" = 0A ] || continue
+      case "$address" in
+        00000000:* | 00000000000000000000000000000000:*)
+          port=$((0x${address##*:}))
+          case " $ports " in *" $port "*) ;; *) ports="$ports $port" ;; esac
+          ;;
+      esac
+    done < "$table"
+  done
+  read -r last < "$listening" 2>/dev/null || last=none
+  if [ "$ports" != "$last" ]; then
+    echo "$ports" > "$listening"
+    echo "ports$ports" >&3
+  fi
+  sleep 2
+done) &
+echo ready >&3
+while read -r cmd arg <&3; do
+  case "$cmd" in
+    time) date -u -s "@$arg" > /dev/null 2>&1 && echo "ok time" >&3 ;;
+    ping) echo pong >&3 ;;
+    ports) rm -f "$listening" ;;
+  esac
+done
