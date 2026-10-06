@@ -7,13 +7,16 @@
 #
 #   OPCODE_DOMAIN=opcode.example.com docker compose up -d
 #
+# It runs the image published from this repository's main branch
+# (`docker compose pull` updates it). To run your own build instead:
+# `docker build -t ghcr.io/tks98/opcode .` first.
+#
 # Add OPCODE_RELAY=on to give terminals and Linux machines internet access
 # through this server (read "Internet relay" in the README first).
 
 services:
   opcode:
-    build: .
-    image: opcode
+    image: ghcr.io/tks98/opcode:latest
     restart: unless-stopped
     environment:
       OPCODE_PREVIEW_HOST: https://preview.${OPCODE_DOMAIN:?set OPCODE_DOMAIN to your domain}/

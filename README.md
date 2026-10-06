@@ -140,14 +140,13 @@ Then open http://localhost:5173.
 
 ### With Docker
 
-The `Dockerfile` builds Opcode (downloading the toolchains the build needs) into an image whose server sends the headers Opcode needs, serves files compressed ahead of time (Clang's 76 MB compiler downloads as 17 MB), and can also be its internet relay and web preview host, all on one port:
+The Docker image runs Opcode with a small server that sends the headers Opcode needs, serves files compressed ahead of time (Clang's 76 MB compiler downloads as 17 MB), and can also be its internet relay and web preview host, all on one port. Every push to `main` publishes it as `ghcr.io/tks98/opcode`:
 
 ```bash
-docker build -t opcode .
-docker run --rm -p 8080:8080 opcode
+docker run --rm -p 8080:8080 ghcr.io/tks98/opcode
 ```
 
-Then open http://localhost:8080. A first build takes a few minutes. The image is about 1.2 GB (a 500 MB download), mostly the toolchains and the Linux and Docker machines.
+Then open http://localhost:8080. The image is about 1.2 GB (a 500 MB download), mostly the toolchains and the Linux and Docker machines. To build it yourself from this repository (a few minutes; it downloads the toolchains the build needs), `docker build -t opcode .` and run `opcode` instead.
 
 Browsers only run Opcode on secure pages. `http://localhost` counts, but other computers reaching the server at `http://` don't, so a server for others needs HTTPS in front of it. `compose.yaml` does that with [Caddy](https://caddyserver.com/), which gets certificates from Let's Encrypt. Point DNS for your domain and for `preview.` your domain at the server, open ports 80 and 443, then:
 
@@ -168,7 +167,7 @@ The image is configured with environment variables (`docker run -e`, or `environ
 Everything on one computer, with an address for each preview (Chrome and Firefox resolve every `*.localhost` name without DNS):
 
 ```bash
-docker run --rm -p 8080:8080 -e OPCODE_RELAY=on -e OPCODE_PREVIEW_HOST='http://*.localhost:8080/' opcode
+docker run --rm -p 8080:8080 -e OPCODE_RELAY=on -e OPCODE_PREVIEW_HOST='http://*.localhost:8080/' ghcr.io/tks98/opcode
 ```
 
 Behind a reverse proxy of your own, pass the `Host` header on (Caddy does; in nginx, `proxy_set_header Host $host`, plus the WebSocket upgrade headers for `/wisp/`), and serve Opcode at the root of its domain: the built-in relay answers DNS at `/dns-query`. The server is `scripts/server.mjs`; without Docker, `npm run build && npm run build:preview-host && node scripts/precompress.mjs && npm start` runs it the same way.
@@ -186,7 +185,7 @@ Cross-Origin-Embedder-Policy: require-corp
 - **Java**: `npm run build` also builds Java's class library files (`scripts/fetch-java.mjs`) from a pinned, checksummed Amazon Corretto 21 JDK, downloaded once into `node_modules/.cache/opcode-java/` (about 210 MB; CI caches it).
 - **Netlify / Cloudflare Pages**: `public/_headers` is included.
 - **Vercel**: `vercel.json` is included.
-- **GitHub Pages and other hosts without custom headers**: `coi-serviceworker.js` adds the headers on the first visit and reloads the page once.
+- **GitHub Pages**: `.github/workflows/pages.yml` builds and publishes every push to `main` (turn it on in *Settings > Pages* with *Source: GitHub Actions*). Pages, like other hosts without custom headers, can't send the headers, so `coi-serviceworker.js` adds them on the first visit and reloads the page once.
 - **Settings without rebuilding**: `dist/config.js` (from `public/config.js`) can set the internet relay and the web preview host, below, in place of the `VITE_*` variables the build reads.
 
 ### Internet relay

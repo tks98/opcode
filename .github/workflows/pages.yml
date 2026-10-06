@@ -1,0 +1,59 @@
+name: GitHub Pages
+
+# Builds Opcode and publishes it with GitHub Pages, on every push to main.
+# Turn it on once in the repository's Settings > Pages (Source: GitHub
+# Actions). Pages can't send the cross-origin isolation headers Opcode needs,
+# so public/coi-serviceworker.js adds them in the browser (the first visit
+# reloads once).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          # The JDK scripts/fetch-java.mjs builds Java's runtime files from (~210 MB),
+          # and the NuGet packages scripts/fetch-csharp.mjs builds C#'s from.
+          path: |
+            node_modules/.cache/opcode-java
+            node_modules/.cache/opcode-csharp
+          key: toolchains-${{ hashFiles('scripts/fetch-java.mjs', 'scripts/fetch-csharp.mjs') }}
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
