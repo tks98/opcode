@@ -7,7 +7,7 @@
 #   docker run --rm -p 8080:8080 opcode       # then open http://localhost:8080
 #
 # Settings are environment variables (OPCODE_RELAY, OPCODE_PREVIEW_HOST...):
-# see "Deploying with Docker" in the README, and compose.yaml for a site with
+# see docs/deploying.md, and compose.yaml for a site with
 # HTTPS.
 
 # The build. The toolchains `npm run build` downloads (pinned and checksummed:

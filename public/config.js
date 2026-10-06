@@ -5,12 +5,12 @@
 // VITE_PREVIEW_HOST).
 window.OPCODE_CONFIG = {
   // The internet relay for terminals and Linux machines: a wss:// address,
-  // a path on this site such as '/wisp/', or '' for none (README: "Internet
-  // relay").
+  // a path on this site such as '/wisp/', or '' for none (docs/deploying.md:
+  // "Internet relay").
   // relay: 'wss://relay.example.com/',
   //
   // The web preview's host: https://preview.example.com/, or
-  // https://*.preview.example.com/ for one address per server (README: "Web
-  // preview host").
+  // https://*.preview.example.com/ for one address per server (docs/deploying.md:
+  // "Web preview host").
   // previewHost: 'https://*.preview.example.com/',
 }

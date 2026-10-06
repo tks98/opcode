@@ -12,7 +12,7 @@
 # `docker build -t ghcr.io/tks98/opcode .` first.
 #
 # Add OPCODE_RELAY=on to give terminals and Linux machines internet access
-# through this server (read "Internet relay" in the README first).
+# through this server (read "Internet relay" in docs/deploying.md first).
 
 services:
   opcode:

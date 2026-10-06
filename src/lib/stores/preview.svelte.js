@@ -14,7 +14,7 @@ import { linuxStore } from './linux.svelte.js'
 import { describeError } from '../runtime/wasmer.js'
 import { siteConfig } from '../siteConfig.js'
 
-/** The HTTP host origin(s), from config.js or the build. Self-hosting: see README ("Web preview host"). */
+/** The HTTP host origin(s), from config.js or the build. Self-hosting: see docs/deploying.md ("Web preview host"). */
 export const PREVIEW_HOST = siteConfig.previewHost || import.meta.env.VITE_PREVIEW_HOST || 'https://default.local.wasmer.site/'
 export const PER_SERVER_HOSTS = PREVIEW_HOST.includes('*')
 

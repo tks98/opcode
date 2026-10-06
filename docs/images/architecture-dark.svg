@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="580" viewBox="0 0 960 580" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-labelledby="title">
+<title id="title">How Opcode works: the editor, terminal and preview, the project sandbox, compilers in Web Workers and the Linux and Docker machines all run in your browser; over the network come only the app's files, the Wasmer registry's packages, an optional internet relay and the preview host.</title>
+<defs>
+  <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M 24 0 L 0 0 0 24" fill="none" stroke="#17345a" stroke-width="1"/></pattern>
+  <marker id="head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8cc8ff"/></marker>
+  <marker id="tail" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#8cc8ff"/></marker>
+</defs>
+<rect width="960" height="580" fill="#0e2440"/>
+<rect x="20" y="26" width="620" height="534" rx="12" fill="#06162a"/>
+<rect x="20" y="20" width="620" height="534" rx="12" fill="#0e2440"/>
+<rect x="20" y="20" width="620" height="534" rx="12" fill="url(#grid)" stroke="#eaf2ff" stroke-width="2"/>
+<rect x="38" y="36" width="318" height="30" rx="6" fill="#ffd84d"/>
+<text x="50" y="56" font-size="14.5" font-weight="700" fill="#1b2b4b" text-anchor="start">Your browser: all the code runs here</text>
+<rect x="40" y="95" width="172" height="64" rx="8" fill="#2a4f78"/>
+<rect x="40" y="92" width="172" height="64" rx="8" fill="#13304f" stroke="#2a4f78" stroke-width="2"/>
+<text x="56" y="119" font-size="14.5" font-weight="700" fill="#eaf2ff" text-anchor="start">Editor</text>
+<text x="56" y="140" font-size="12" font-weight="400" fill="#a9beda" text-anchor="start">Monaco, from VS Code</text>
+<rect x="244" y="95" width="172" height="64" rx="8" fill="#2a4f78"/>
+<rect x="244" y="92" width="172" height="64" rx="8" fill="#13304f" stroke="#2a4f78" stroke-width="2"/>
+<text x="260" y="119" font-size="14.5" font-weight="700" fill="#eaf2ff" text-anchor="start">Terminal</text>
+<text x="260" y="140" font-size="12" font-weight="400" fill="#a9beda" text-anchor="start">xterm.js, with Bash</text>
+<rect x="448" y="95" width="172" height="64" rx="8" fill="#2a4f78"/>
+<rect x="448" y="92" width="172" height="64" rx="8" fill="#13304f" stroke="#2a4f78" stroke-width="2"/>
+<text x="464" y="119" font-size="14.5" font-weight="700" fill="#eaf2ff" text-anchor="start">Preview</text>
+<text x="464" y="140" font-size="12" font-weight="400" fill="#a9beda" text-anchor="start">web pages and plots</text>
+<rect x="40" y="215" width="360" height="156" rx="8" fill="#2a4f78"/>
+<rect x="40" y="212" width="360" height="156" rx="8" fill="#13304f" stroke="#2a4f78" stroke-width="2"/>
+<text x="56" y="240" font-size="14.5" font-weight="700" fill="#eaf2ff" text-anchor="start">Project sandbox</text>
+<text x="56" y="260" font-size="12" font-weight="400" fill="#a9beda" text-anchor="start">WASIX programs on the Wasmer SDK, one per project</text>
+<text x="56" y="290" font-size="12.5" font-weight="400" fill="#eaf2ff" text-anchor="start">Bash · coreutils · nano · grep · sed · tar</text>
+<text x="56" y="312" font-size="12.5" font-weight="400" fill="#eaf2ff" text-anchor="start">Python · Node.js · PHP · Go · Ruby · Lua</text>
+<text x="56" y="334" font-size="12.5" font-weight="400" fill="#eaf2ff" text-anchor="start">SQLite · Java (Ristretto) · C# (.NET) · Rust</text>
+<text x="56" y="356" font-size="12" font-weight="400" fill="#a9beda" text-anchor="start">Your files in ~, synced with the editor</text>
+<rect x="432" y="215" width="188" height="156" rx="8" fill="#2a4f78"/>
+<rect x="432" y="212" width="188" height="156" rx="8" fill="#13304f" stroke="#2a4f78" stroke-width="2"/>
+<text x="448" y="240" font-size="14.5" font-weight="700" fill="#eaf2ff" text-anchor="start">Web Workers</text>
+<text x="448" y="260" font-size="12" font-weight="400" fill="#a9beda" text-anchor="start">beside the sandbox</text>
+<text x="448" y="290" font-size="12.5" font-weight="400" fill="#eaf2ff" text-anchor="start">Clang: C and C++</text>
+<text x="448" y="312" font-size="12.5" font-weight="400" fill="#eaf2ff" text-anchor="start">javac: Java</text>
+<text x="448" y="334" font-size="12.5" font-weight="400" fill="#eaf2ff" text-anchor="start">tsc: TypeScript</text>
+<text x="448" y="356" font-size="12.5" font-weight="400" fill="#eaf2ff" text-anchor="start">webR: R</text>
+<rect x="40" y="407" width="580" height="66" rx="8" fill="#2a4f78"/>
+<rect x="40" y="404" width="580" height="66" rx="8" fill="#13304f" stroke="#2a4f78" stroke-width="2"/>
+<text x="56" y="430" font-size="14.5" font-weight="700" fill="#eaf2ff" text-anchor="start">Linux and Docker machines</text>
+<text x="56" y="452" font-size="12.5" font-weight="400" fill="#a9beda" text-anchor="start">A whole x86 PC in the v86 emulator, running Alpine Linux and Docker Engine</text>
+<rect x="40" y="491" width="580" height="46" rx="8" fill="#2a4f78"/>
+<rect x="40" y="488" width="580" height="46" rx="8" fill="#13304f" stroke="#2a4f78" stroke-width="2"/>
+<text x="56" y="516" font-size="12.5" fill="#eaf2ff"><tspan font-weight="700">Saved in this browser:</tspan> <tspan fill="#a9beda">projects, machines and downloaded toolchains</tspan></text>
+<line x1="126" y1="160" x2="126" y2="208" stroke="#8cc8ff" stroke-width="2" marker-end="url(#head)" marker-start="url(#tail)"/>
+<text x="134" y="189" font-size="11.5" font-weight="400" fill="#a9beda" text-anchor="start">files, both ways</text>
+<line x1="330" y1="160" x2="330" y2="208" stroke="#8cc8ff" stroke-width="2" marker-end="url(#head)" marker-start="url(#tail)"/>
+<text x="338" y="189" font-size="11.5" font-weight="400" fill="#a9beda" text-anchor="start">keys and output</text>
+<line x1="534" y1="212" x2="534" y2="164" stroke="#8cc8ff" stroke-width="2" marker-end="url(#head)"/>
+<text x="542" y="189" font-size="11.5" font-weight="400" fill="#a9beda" text-anchor="start">plots</text>
+<line x1="404" y1="290" x2="428" y2="290" stroke="#8cc8ff" stroke-width="2" marker-end="url(#head)" marker-start="url(#tail)"/>
+<text x="680" y="44" font-size="14.5" font-weight="700" fill="#eaf2ff" text-anchor="start">Over the network</text>
+<text x="680" y="64" font-size="11.5" font-weight="400" fill="#a9beda" text-anchor="start">Files and connections only</text>
+<rect x="680" y="87" width="260" height="98" rx="8" fill="#2a4f78"/>
+<rect x="680" y="84" width="260" height="98" rx="8" fill="#13304f" stroke="#2a4f78" stroke-width="2"/>
+<text x="696" y="110" font-size="14" font-weight="700" fill="#eaf2ff" text-anchor="start">Your Opcode site</text>
+<text x="696" y="130" font-size="12" font-weight="400" fill="#eaf2ff" text-anchor="start">The app, toolchains and machines,</text>
+<text x="696" y="147" font-size="12" font-weight="400" fill="#eaf2ff" text-anchor="start">as static files</text>
+<text x="696" y="170" font-size="11.5" font-weight="400" fill="#a9beda" text-anchor="start">GitHub Pages, or the Docker image</text>
+<line x1="676" y1="133" x2="646" y2="133" stroke="#8cc8ff" stroke-width="2" marker-end="url(#head)"/>
+<rect x="680" y="205" width="260" height="98" rx="8" fill="#2a4f78"/>
+<rect x="680" y="202" width="260" height="98" rx="8" fill="#13304f" stroke="#2a4f78" stroke-width="2"/>
+<text x="696" y="228" font-size="14" font-weight="700" fill="#eaf2ff" text-anchor="start">Wasmer registry</text>
+<text x="696" y="248" font-size="12" font-weight="400" fill="#eaf2ff" text-anchor="start">Python, Node.js, PHP and the</text>
+<text x="696" y="265" font-size="12" font-weight="400" fill="#eaf2ff" text-anchor="start">terminal’s tools, on first use</text>
+<text x="696" y="288" font-size="11.5" font-weight="400" fill="#a9beda" text-anchor="start">Cached by the browser</text>
+<line x1="676" y1="251" x2="646" y2="251" stroke="#8cc8ff" stroke-width="2" marker-end="url(#head)"/>
+<rect x="680" y="323" width="260" height="98" rx="8" fill="#2a4f78"/>
+<rect x="680" y="320" width="260" height="98" rx="8" fill="#13304f" stroke="#2a4f78" stroke-width="2"/>
+<text x="696" y="346" font-size="14" font-weight="700" fill="#eaf2ff" text-anchor="start">Internet relay (optional)</text>
+<text x="696" y="366" font-size="12" font-weight="400" fill="#eaf2ff" text-anchor="start">Wisp over a WebSocket, for</text>
+<text x="696" y="383" font-size="12" font-weight="400" fill="#eaf2ff" text-anchor="start">pip install, git clone and curl</text>
+<text x="696" y="406" font-size="11.5" font-weight="400" fill="#a9beda" text-anchor="start">Turned off unless you set one up</text>
+<line x1="646" y1="369" x2="676" y2="369" stroke="#8cc8ff" stroke-width="2" marker-end="url(#head)" marker-start="url(#tail)"/>
+<rect x="680" y="441" width="260" height="98" rx="8" fill="#2a4f78"/>
+<rect x="680" y="438" width="260" height="98" rx="8" fill="#13304f" stroke="#2a4f78" stroke-width="2"/>
+<text x="696" y="464" font-size="14" font-weight="700" fill="#eaf2ff" text-anchor="start">Preview host</text>
+<text x="696" y="484" font-size="12" font-weight="400" fill="#eaf2ff" text-anchor="start">A separate origin, so servers</text>
+<text x="696" y="501" font-size="12" font-weight="400" fill="#eaf2ff" text-anchor="start">in the sandbox open in the preview</text>
+<text x="696" y="524" font-size="11.5" font-weight="400" fill="#a9beda" text-anchor="start">Wasmer’s, or served by the image</text>
+<line x1="646" y1="487" x2="676" y2="487" stroke="#8cc8ff" stroke-width="2" marker-end="url(#head)" marker-start="url(#tail)"/>
+</svg>
