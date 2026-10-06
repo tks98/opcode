@@ -86,7 +86,7 @@ jobs:
           curl -sfI http://localhost:8080/ | grep -i '^cross-origin-embedder-policy: require-corp'
           curl -sf http://localhost:8080/config.js | grep '"relay": "/wisp/"'
           curl -sfI -H 'Host: p1.localhost:8080' http://localhost:8080/.wasmer/host.html | grep -i '^cross-origin-resource-policy: cross-origin'
-          llvm=$(docker exec opcode ls dist/assets | grep '^llvm.core')
+          llvm=$(docker exec opcode ls dist/assets | grep -m1 '^llvm\.core-') # Clang's compiler (core2, core3... are its other parts)
           curl -sfI -H 'Accept-Encoding: br' "http://localhost:8080/assets/$llvm" | grep -i '^content-encoding: br'
       - if: failure()
         run: docker logs opcode
