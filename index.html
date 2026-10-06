@@ -19,8 +19,10 @@
   <script>
     // Hosts that cannot send the cross-origin isolation headers get them
     // from a service worker instead (see public/coi-serviceworker.js).
+    // register() resolves before the worker is active, so wait for ready:
+    // reloading any sooner can load the page without the worker again.
     if (!window.crossOriginIsolated && window.isSecureContext && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.register('coi-serviceworker.js').then(() => {
+      navigator.serviceWorker.register('coi-serviceworker.js').then(() => navigator.serviceWorker.ready).then(() => {
         if (!sessionStorage.getItem('opcode-coi-reloaded')) {
           sessionStorage.setItem('opcode-coi-reloaded', '1')
           location.reload()
