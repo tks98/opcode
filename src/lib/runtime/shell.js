@@ -59,6 +59,9 @@ export PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 export JAVA_HOME=${JAVA_HOME} RISTRETTO_JDK_HOME=${JAVA_HOME}
 export HISTFILE=${HISTORY_FILE} HISTSIZE=5000 HISTCONTROL=ignoredups
 shopt -s histappend checkwinsize 2>/dev/null
+# With TERMCAP, readline would bracket pastes, and a pasted block would sit
+# at the prompt as one edited line. Opcode runs each pasted line in turn.
+bind 'set enable-bracketed-paste off' 2>/dev/null
 history -r 2>/dev/null
 alias ll='ls -la' la='ls -A'
 # Serve a folder as a website, as Run does for web pages: serve [folder] [port]
