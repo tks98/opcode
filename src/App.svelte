@@ -31,6 +31,7 @@
   import Editor from './lib/components/Editor.svelte'
   import Terminal from './lib/components/Terminal.svelte'
   import StatusBar from './lib/components/StatusBar.svelte'
+  import KeyBar from './lib/components/KeyBar.svelte'
   import LinuxWorkspace from './lib/components/LinuxWorkspace.svelte'
   import Preview from './lib/components/Preview.svelte'
   import InternetSettings from './lib/components/InternetSettings.svelte'
@@ -72,6 +73,8 @@
   let editorTheme = $derived(EDITOR_THEMES[themeStore.editorTheme])
   // Phones with the on-screen keyboard up show only the panel being typed in.
   let keyboardFor = $derived(narrow && viewport.keyboardOpen ? typingIn : null)
+  // Keys the on-screen keyboard lacks, while typing in a terminal.
+  let showKeyBar = $derived(viewport.keyboardOpen && typingIn === 'terminal')
 
   onMount(() => {
     environmentIssue = environmentProblem()
@@ -82,7 +85,7 @@
     narrowQuery?.addEventListener('change', onNarrowChange)
     const onFocusIn = (event) => {
       const target = event.target
-      typingIn = target.closest?.('.bottom-panel') ? 'terminal' : target.closest?.('.editor-panel') ? 'editor' : null
+      typingIn = target.closest?.('.bottom-panel, .terminal-view') ? 'terminal' : target.closest?.('.editor-panel') ? 'editor' : null
     }
     document.addEventListener('focusin', onFocusIn)
     const stopTrackingViewport = trackViewport()
@@ -531,6 +534,9 @@
         </div>
 
         <StatusBar {session} {machine} saveError={projectStore.saveError} onInternet={() => (showInternet = true)} />
+        {#if showKeyBar}
+          <KeyBar />
+        {/if}
       </div>
     {/if}
   {/if}

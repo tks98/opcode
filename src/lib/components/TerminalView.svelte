@@ -12,6 +12,7 @@
   import { themeStore } from '../stores/theme.svelte.js'
   import { mayTakeFocus } from '../actions.js'
   import { enableTouchScroll } from '../terminalTouch.js'
+  import { applyCtrl, clearKeyBarTarget, setKeyBarTarget } from '../stores/keyBar.svelte.js'
 
   // onLink(uri) returns true when it handled a clicked link.
   let { session, visible = true, onLink = () => false } = $props()
@@ -67,7 +68,9 @@
         })
       }
 
-      terminal.onData((data) => session.input(data))
+      // The key bar's Ctrl applies to the next key typed.
+      terminal.onData((data) => session.input(applyCtrl(data)))
+      terminal.textarea?.addEventListener('focus', () => setKeyBarTarget(terminal))
       terminal.onResize(({ cols, rows }) => session.resize(cols, rows))
 
       view = {
@@ -88,6 +91,7 @@
     return () => {
       disposed = true
       stopTouchScroll?.()
+      if (terminal) clearKeyBarTarget(terminal)
       resizeObserver?.disconnect()
       if (view) session.detach(view)
       terminal?.dispose()

@@ -30,6 +30,12 @@ export const HOST_DIR = `${OPCODE_DIR}/host`
 // rustc, cargo and other tools that run as a bash process of their own.
 export const TOOLS_PATH = `${INTERNAL_DIR}/tools.sh`
 export const TOOLS_SCRIPT = TOOLS.replaceAll('@OPCODE_DIR@', OPCODE_DIR).replaceAll('@RUST_SYSROOT@', RUST_SYSROOT).replaceAll('@RUST_TARGET@', RUST_TARGET)
+// A description of xterm.js for programs that read termcap. The sandbox has
+// no termcap or terminfo files, so without it Bash's line editor can't move
+// the cursor up: a command wider than the terminal scrolled sideways instead
+// of wrapping (`<ustc main.rs -o main`), which phones' narrow terminals hit
+// all the time. From xterm's termcap entry; the size comes from the terminal.
+export const TERMCAP = String.raw`xterm-256color|xterm|xterm with 256 colors:am:bs:km:mi:ms:xn:co#80:it#8:li#24:Co#256:AL=\E[%dL:DC=\E[%dP:DL=\E[%dM:DO=\E[%dB:IC=\E[%d@:LE=\E[%dD:RI=\E[%dC:UP=\E[%dA:al=\E[L:bl=^G:cd=\E[J:ce=\E[K:cl=\E[H\E[2J:cm=\E[%i%d;%dH:cr=^M:cs=\E[%i%d;%dr:dc=\E[P:dl=\E[M:do=^J:ho=\E[H:ic=\E[@:kD=\E[3~:kb=^?:kd=\EOB:ke=\E[?1l\E>:kh=\EOH:@7=\EOF:kl=\EOD:kr=\EOC:ks=\E[?1h\E=:ku=\EOA:le=^H:md=\E[1m:me=\E[m:mr=\E[7m:nd=\E[C:se=\E[27m:sf=^J:so=\E[7m:sr=\EM:ta=^I:ue=\E[24m:up=\E[A:us=\E[4m:`
 export const HISTORY_PATH = `${INTERNAL_DIR}/bash_history`
 export const HISTORY_FILE = `${WORKSPACE_ROOT}/${HISTORY_PATH}`
 
@@ -48,6 +54,7 @@ export const OSC_CWD = 7
 
 export const BASHRC = String.raw`# Opcode terminal setup. Regenerated for every session; edits are not kept.
 export HOME=${WORKSPACE_ROOT} USER=student TERM=xterm-256color LANG=C.UTF-8 EDITOR=nano PAGER=less
+export TERMCAP='${TERMCAP}'
 export PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 export JAVA_HOME=${JAVA_HOME} RISTRETTO_JDK_HOME=${JAVA_HOME}
 export HISTFILE=${HISTORY_FILE} HISTSIZE=5000 HISTCONTROL=ignoredups
@@ -278,6 +285,7 @@ export const SANDBOX_ENV = {
   HOME: WORKSPACE_ROOT,
   USER: 'student',
   TERM: 'xterm-256color',
+  TERMCAP,
   LANG: 'C.UTF-8',
   EDITOR: 'nano',
   PAGER: 'less',

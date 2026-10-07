@@ -26,6 +26,23 @@
   let currentFileId = null
   let applyingExternalChange = false
 
+  // Phones wrap long lines instead of scrolling sideways, and give the code
+  // the width the line numbers and folding arrows would take.
+  const narrowQuery = typeof matchMedia === 'undefined' ? null : matchMedia('(max-width: 760px)')
+  let narrow = $state(narrowQuery?.matches ?? false)
+  const widthOptions = (narrow) =>
+    narrow ? { wordWrap: 'on', wrappingIndent: 'indent', lineNumbersMinChars: 2, folding: false } : { wordWrap: 'off', lineNumbersMinChars: 5, folding: true }
+
+  $effect(() => {
+    const onChange = (event) => (narrow = event.matches)
+    narrowQuery?.addEventListener('change', onChange)
+    return () => narrowQuery?.removeEventListener('change', onChange)
+  })
+
+  $effect(() => {
+    editor?.updateOptions(widthOptions(narrow))
+  })
+
   // Follow the editor colour theme (Monaco themes are global).
   $effect(() => {
     const name = monacoThemeName(themeStore.editorTheme)
@@ -61,6 +78,7 @@
           overviewRulerBorder: false,
           hideCursorInOverviewRuler: true,
           scrollbar: { verticalScrollbarSize: 12, horizontalScrollbarSize: 12, useShadows: false },
+          ...widthOptions(narrow),
         })
 
         editor.onDidChangeModelContent(() => {

@@ -164,6 +164,17 @@ export class Shell {
         return
       }
       this.#typedSincePrompt = false
+      if (this.#atPrompt) {
+        // Bash at its prompt doesn't get SIGINT under WASIX, so do what it
+        // would: go to the end of the line (Ctrl+E), drop it (Ctrl+U) and
+        // start a new prompt. ^C shows once bash has cleared the line.
+        this.#send('\x05\x15')
+        setTimeout(() => {
+          this.write('^C')
+          this.#send('\r')
+        }, 50)
+        return
+      }
       this.#send(data)
       return
     }

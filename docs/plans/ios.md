@@ -65,9 +65,15 @@ If `echo` and `ls` work and Python doesn't, it's probably size (H2). If `ls` han
   - iOS no longer zooms in when the editor or terminal gets the focus (their hidden inputs are 16px);
   - Run scrolls the terminal to its end, and on a phone typing in the editor, moves the keyboard to the terminal.
 
-  Still open: a key bar (Esc, Tab, Ctrl, arrows), word wrap in the editor on phones, and the line-wrapping bug below.
+- **Also fixed (7 Oct 2026):**
+  - long commands wrap: the shell's environment has a termcap entry for xterm (`TERMCAP` in `runtime/shell.js`), so Bash's line editor can move the cursor up instead of scrolling the line sideways;
+  - the editor wraps long lines on phones (and drops the folding arrows and narrows the line numbers);
+  - a key bar (`components/KeyBar.svelte`) above the on-screen keyboard while a terminal has the focus: Esc, Tab, a sticky Ctrl (then a letter), Ctrl+C, the arrows, `|`, `~`, `/` and `-`. Its taps keep the focus in the terminal, so the keyboard stays up;
+  - Ctrl+C at the prompt drops the half-typed line and shows a new prompt, as in a native terminal (Bash at its prompt doesn't get SIGINT under WASIX). This was broken on every platform.
+
+  Still open: `less` (and so `man` and `git log`) doesn't return to the prompt after `q`, on every platform, with or without the termcap entry.
 - **Safari 27 or later is required** (`docs/limitations.md`), because of the Wasmer SDK. A device on iOS or iPadOS 26 or earlier is expected to fail, whatever else is true.
-- **A separate bug, on every platform:** a command wider than the terminal shows up as `<ustc main.rs -o main && ./main`, printed twice. Bash's line editor scrolls the line sideways because it can't find a description of the terminal (`TERM=xterm-256color`, but the sandbox has no terminfo or termcap entry for it), and `bind 'set horizontal-scroll-mode off'` doesn't help. It shows on phones because their terminals are about 40 columns wide. It doesn't depend on the rest of this plan, so it can be fixed now (see Phase 4).
+- **A separate bug, on every platform (fixed 7 Oct 2026, see above):** a command wider than the terminal shows up as `<ustc main.rs -o main && ./main`, printed twice. Bash's line editor scrolls the line sideways because it can't find a description of the terminal (`TERM=xterm-256color`, but the sandbox has no terminfo or termcap entry for it), and `bind 'set horizontal-scroll-mode off'` doesn't help. It shows on phones because their terminals are about 40 columns wide. It doesn't depend on the rest of this plan, so it can be fixed now (see Phase 4).
 - **The Wasmer SDK** (the runtime behind the sandbox) is tested in Playwright's WebKit, and its README mentions Safari 27 and later. It uses WebAssembly JSPI (`WebAssembly.Suspending`, `WebAssembly.promising`), `Atomics.waitAsync`, `SharedArrayBuffer` and a Web Worker per process.
 - **The layout follows the window's width**, not the device: breakpoints at 760 px (`App.svelte`, `TopBar.svelte`, `StatusBar.svelte`) and 900 px (`LinuxWorkspace.svelte`), and larger touch targets under `pointer: coarse`. Nothing reads the user agent, so iPad Safari identifying itself as a Mac ("desktop-class browsing") doesn't change what Opcode does. A full-screen iPad gets the desktop layout; an iPad in Split View or Slide Over gets the phone layout.
 - **Sizes**, which matter for iOS's memory limits:
