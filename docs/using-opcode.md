@@ -23,7 +23,11 @@ Open Opcode and pick a language: the starter program is one click on **Run** awa
 - **Several terminals per project**: open more tabs with **+** (Ctrl+Shift+`); each has its own shell, directory and running program, and Run uses the active one
 - **Multiple projects**: switch, rename and delete them from the project menu at the top; each keeps its own terminal sessions
 - **Light and dark, and editor colours**: a notebook look by day and a blueprint by night (following your system until you choose), plus five colour themes for the editor and terminals, including two high-contrast ones. See [Design](design.md)
-- **Works on phones**: the files become a drawer, and Run stays in reach
+- **Works on phones and tablets**, iPhone and iPad included (iOS 27 or later):
+  - the files become a drawer, Run stays in reach, and long lines wrap in the editor
+  - while the on-screen keyboard is up, the screen goes to the editor or the terminal you're typing in; Run moves the keyboard to the terminal
+  - a key bar above the keyboard has Esc, Tab, Ctrl (tap it, then a letter), Ctrl+C, the arrows (↑ brings back the last command), `|`, `~`, `/` and `-`
+  - drag a finger to scroll the terminal; a tap brings up the keyboard
 - **Saved automatically**: projects and terminal history are stored in your browser (IndexedDB)
 
 ## Keyboard shortcuts

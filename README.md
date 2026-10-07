@@ -2,7 +2,7 @@
 
 **A browser IDE with a real terminal.** Write and run code in 16 languages, or learn the Linux command line and Docker on a real Linux computer, with nothing to install. Everything runs in your browser on WebAssembly: no server ever runs your code.
 
-**[Try it](https://tks98.github.io/opcode/)** · [Documentation](docs/README.md) · [Host your own](docs/deploying.md)
+**[Try it](https://opcode-dev.com)** · [Documentation](docs/README.md) · [Host your own](docs/deploying.md)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/coding-dark.png">
@@ -16,7 +16,8 @@
 - **Linux and Docker machines**: a real Alpine Linux computer, and one with Docker Engine, each with a built-in tutorial that checks your work.
 - **Web preview**: servers started in the terminal, web pages and R's plots open beside the editor.
 - **Your code stays with you**: projects and machines are saved in your browser, and never uploaded.
-- **Works in Chrome, Edge and Firefox**, on computers, Chromebooks and phones.
+- **Works in Chrome, Edge, Firefox and Safari**, on computers and Chromebooks, and on iPhone and iPad (iOS 27 or later) and Android phones and tablets.
+- **Made for touch too**: on a phone the screen goes to the editor or the terminal you're typing in, a key bar adds Esc, Tab, Ctrl, Ctrl+C and the arrows above the keyboard, and a finger scrolls the terminal.
 
 <table>
   <tr>
@@ -26,6 +27,21 @@
   <tr>
     <td align="center">Real Docker, with a container's web page in the preview</td>
     <td align="center">R, with its plots in the preview</td>
+  </tr>
+</table>
+
+### On iPhone and iPad
+
+<table>
+  <tr>
+    <td align="center" width="27%"><img alt="Opcode on an iPhone: a Python program in the editor, and its output in the terminal below" src="docs/images/iphone-python.png" height="520"></td>
+    <td align="center" width="27%"><img alt="Opcode on an iPhone with the keyboard open: the terminal fills the screen above it, with a bar of Esc, Tab, Ctrl, Ctrl+C and arrow keys" src="docs/images/iphone-terminal-keys.png" height="520"></td>
+    <td align="center" width="46%"><img alt="Opcode on an iPad: a Rust program compiled with rustc and run in the terminal" src="docs/images/ipad-rust.png" height="520"></td>
+  </tr>
+  <tr>
+    <td align="center">Python on an iPhone</td>
+    <td align="center">The terminal and its key bar, above the keyboard</td>
+    <td align="center">Rust, compiled and run on an iPad</td>
   </tr>
 </table>
 
@@ -40,7 +56,7 @@ Each project runs in its own sandbox of WASIX programs on the [Wasmer SDK](https
 
 ## Quick start
 
-**Use it**: open https://tks98.github.io/opcode/.
+**Use it**: open https://opcode-dev.com, on a computer, phone or tablet.
 
 **Run it locally** (Node.js 20 or later):
 
