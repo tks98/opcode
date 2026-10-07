@@ -373,7 +373,10 @@ export class Shell {
     }
     pump(process.stdout).catch(() => {})
     pump(process.stderr).catch(() => {})
-    process.wait().then((output) => {
+    // A process whose worker died (wait() rejects) failed like a runtime
+    // error: start a new shell rather than leave a dead terminal.
+    const failed = () => ({ exitCode: RUNTIME_FAILURE })
+    process.wait().catch(failed).then((output) => {
       if (this.#process !== process || this.#closed) return
       this.#process = null
       this.#setBusy(false)
@@ -388,7 +391,7 @@ export class Shell {
       }
       this.exited = true
       this.write(`\r\n${dim(`[Shell exited with code ${output.exitCode}. Press any key to start a new one.]`)}\r\n`)
-    }, () => {})
+    })
   }
 
   /**
@@ -432,7 +435,7 @@ export class Shell {
    * while a command runs or the user is typing, unless forced.
    */
   refresh(message, { force = false } = {}) {
-    this.#refreshing = this.#refreshing.then(async () => {
+    const refreshed = this.#refreshing.then(async () => {
       if (this.#closed || !this.#stale || this.busy || !this.#process) return
       if (!force && (this.#typedSincePrompt || this.#typeahead !== null || performance.now() - this.#sentAt < 300)) return
       await this.#replace(async () => {
@@ -446,7 +449,9 @@ export class Shell {
         await this.spawn()
       })
     })
-    return this.#refreshing
+    // The next refresh waits for this one, but doesn't fail with it.
+    this.#refreshing = refreshed.catch(() => {})
+    return refreshed
   }
 
   // Swap in a new shell process, keeping what the user types meanwhile for
@@ -549,7 +554,8 @@ export class Shell {
     if (settle > 0) await sleep(settle)
     this.#sentAt = performance.now()
     this.#atPrompt = false
-    await this.#process?.stdin?.write(`\x15${command}\r`)
+    // Ctrl+E Ctrl+U: drop the whole half-typed line, not just what's left of the cursor.
+    await this.#process?.stdin?.write(`\x05\x15${command}\r`)
     // Show what the command prints, even if the terminal was scrolled back.
     this.#view?.scrollToBottom?.()
     this.#view?.focus()
@@ -557,7 +563,7 @@ export class Shell {
 
   /** Get a fresh prompt below messages printed by the app. */
   async newPrompt() {
-    this.#process?.stdin?.write('\x15\r').catch(() => {})
+    this.#process?.stdin?.write('\x05\x15\r').catch(() => {})
     await this.waitForPrompt(3000)
   }
 

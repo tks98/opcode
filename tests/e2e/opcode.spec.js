@@ -421,3 +421,27 @@ test('compiles and runs Rust, with a built-in cargo', async ({ page }) => {
   }
   await expect(term.rows).not.toContainText('stopped unexpectedly')
 })
+
+test('pages files with less, and quits it with q', async ({ page }) => {
+  await startProject(page, 'Bash')
+  const term = terminal(page)
+  await expect(term.rows).toContainText('student@opcode:~$', { timeout: 120_000 })
+  await term.type('seq 1 300 > nums.txt; echo made-$((1 + 1))')
+  await expect(term.rows).toContainText('made-2')
+
+  await term.type('less nums.txt')
+  await expect(term.rows).toContainText('nums.txt  0%')
+  await page.keyboard.press('Space')
+  await expect(term.rows).not.toContainText(/^1$/m)
+  await page.keyboard.press('G')
+  await expect(term.rows).toContainText('nums.txt (END)')
+  await expect(term.rows).toContainText('300')
+  await page.keyboard.press('q')
+  await term.type('echo after-$((40 + 2))')
+  await expect(term.rows).toContainText('after-42')
+
+  // Piped input can't be paged here: it is shown whole.
+  await term.type('seq 1 3 | sed s/^/piped-/ | less')
+  await expect(term.rows).toContainText('piped-3')
+  await expect(term.rows).toContainText('student@opcode:~$')
+})

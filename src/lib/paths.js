@@ -24,6 +24,9 @@ export function normalizePath(input) {
     segments.push(segment)
   }
   if (segments.length === 0) throw new Error('A name is required')
+  // The terminal reads its startup files from there: a project file there
+  // would replace them.
+  if (segments[0] === INTERNAL_DIR) throw new Error(`"${INTERNAL_DIR}" is reserved for Opcode's own files`)
   return segments.join('/')
 }
 
@@ -83,7 +86,7 @@ export function reparent(path, from, to) {
 
 /** True if a path should stay out of the editor (see IGNORED_DIRS). */
 export function isIgnoredPath(path) {
-  return path.split('/').some((segment) => IGNORED_DIRS.has(segment))
+  return path.split(/[/\\]/).some((segment) => IGNORED_DIRS.has(segment))
 }
 
 export function toWorkspacePath(path) {

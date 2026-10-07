@@ -1,6 +1,10 @@
 // Project persistence. Projects live in IndexedDB, which (unlike
 // localStorage's ~5 MB) comfortably holds multi-file projects. Older builds
 // stored everything in localStorage; that data is migrated on first load.
+//
+// localStorage also holds a copy when IndexedDB can't be written, and the
+// state saved synchronously as the page closes (an IndexedDB write started
+// then may never finish). Each copy carries savedAt; loading takes the newer.
 
 const DB_NAME = 'opcode'
 const STORE = 'state'
@@ -28,6 +32,15 @@ function database() {
 }
 
 function transact(mode, run) {
+  return transactOnce(mode, run).catch((error) => {
+    // A connection the browser closed (iOS does, in the background) stays
+    // closed: open a new one for the next attempt.
+    databasePromise = null
+    throw error
+  })
+}
+
+function transactOnce(mode, run) {
   return database().then(
     (db) =>
       new Promise((resolve, reject) => {
@@ -72,29 +85,41 @@ function clearLegacyState() {
   }
 }
 
-/** Load saved state, or null when there is none. */
-export async function loadState() {
-  try {
-    const state = await transact('readonly', (store) => store.get(KEY))
-    if (state) return state
-  } catch (error) {
-    console.warn('IndexedDB unavailable, falling back to localStorage:', error)
-    return readLegacyState()
-  }
+export class LoadError extends Error {}
 
-  const legacy = readLegacyState()
-  if (legacy) {
-    await saveState(legacy)
-    clearLegacyState()
+/**
+ * Load saved state, or null when there is none. Throws LoadError when saved
+ * projects can't be read: that is not the same as having none.
+ */
+export async function loadState() {
+  let stored
+  try {
+    stored = await transact('readonly', (store) => store.get(KEY))
+  } catch (error) {
+    const local = readLegacyState()
+    if (local) return local
+    throw new LoadError(`Could not read your saved projects (${error?.message || error})`)
   }
-  return legacy
+  const local = readLegacyState()
+  if (local && (!stored || (local.savedAt ?? 0) > (stored.savedAt ?? 0))) {
+    // Newer than IndexedDB's copy (or a first load after an older build).
+    try {
+      await transact('readwrite', (store) => store.put(local, KEY))
+      clearLegacyState()
+    } catch {
+      // Keep the copy in localStorage; it's read again next time.
+    }
+    return local
+  }
+  return stored ?? null
 }
 
 /** Persist state. Falls back to localStorage if IndexedDB is unavailable. */
 export async function saveState(state) {
-  const plain = JSON.parse(JSON.stringify(state))
+  const plain = { ...JSON.parse(JSON.stringify(state)), savedAt: Date.now() }
   try {
     await transact('readwrite', (store) => store.put(plain, KEY))
+    clearLegacyState() // an older copy saved while closing, now superseded
   } catch (error) {
     try {
       localStorage.setItem(LEGACY_PROJECTS_KEY, JSON.stringify(plain))
@@ -102,5 +127,18 @@ export async function saveState(state) {
       console.error('Could not save projects:', error)
       throw error
     }
+  }
+}
+
+/**
+ * Save synchronously, as the page closes, to localStorage (up to its ~5 MB).
+ * Returns false if it didn't fit.
+ */
+export function saveStateNow(state) {
+  try {
+    localStorage.setItem(LEGACY_PROJECTS_KEY, JSON.stringify({ ...state, savedAt: Date.now() }))
+    return true
+  } catch {
+    return false
   }
 }

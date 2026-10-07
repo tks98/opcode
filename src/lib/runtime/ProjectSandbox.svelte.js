@@ -496,7 +496,10 @@ export class ProjectSandbox {
   async #pull({ quick }) {
     const project = this.#getProject()
     if (!project) return
+    const sandbox = this.#sandbox
     const snapshot = await this.#scan({ quick })
+    // Closed or restarted meanwhile: the snapshot may be of another sandbox.
+    if (this.#closed || this.#sandbox !== sandbox) return
     const before = project.files.map((file) => ({ path: file.path, content: file.content }))
     const plan = planPull(snapshot, before, project.folders, this.#baseline)
     if (plan.upserts.length || plan.deletes.length || plan.addFolders.length || plan.removeFolders.length) {
@@ -508,17 +511,15 @@ export class ProjectSandbox {
   }
 
   // Read /workspace. A quick scan re-reads only files whose size changed.
+  // A folder or file that can't be read fails the scan: a snapshot missing
+  // files would make the pull delete them from the editor. (One removed while
+  // scanning fails it too; the next sync reads it again.)
   async #scan({ quick = false } = {}) {
     const fs = this.#sandbox.fs
     const files = new Map()
     const dirs = new Set()
     const walk = async (dir) => {
-      let entries
-      try {
-        entries = await fs.readDir(toWorkspacePath(dir))
-      } catch {
-        return
-      }
+      const entries = await fs.readDir(toWorkspacePath(dir))
       for (const entry of entries) {
         const path = dir ? `${dir}/${entry.name}` : entry.name
         if (isIgnoredPath(path)) continue
@@ -533,11 +534,7 @@ export class ProjectSandbox {
             files.set(path, { size: entry.size, text: known })
             continue
           }
-          try {
-            files.set(path, { size: entry.size, text: decodeText(await fs.readFile(toWorkspacePath(path))) })
-          } catch {
-            // Removed while scanning.
-          }
+          files.set(path, { size: entry.size, text: decodeText(await fs.readFile(toWorkspacePath(path))) })
         }
       }
     }

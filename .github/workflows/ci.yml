@@ -66,6 +66,8 @@ jobs:
 
   docker:
     name: Docker image
+    # Only a main whose tests pass is published as :latest, which compose.yaml pulls.
+    needs: [check, e2e]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

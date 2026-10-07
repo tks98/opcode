@@ -33,7 +33,9 @@ export function planPush(editorFiles, editorFolders, baseline) {
   const editorPaths = new Set()
   for (const file of editorFiles) {
     editorPaths.add(file.path)
-    if (baseline.files.get(file.path) !== file.content) writes.push(file)
+    // A copy: the editor's file can change while the write is under way, and
+    // the baseline must record what was written.
+    if (baseline.files.get(file.path) !== file.content) writes.push({ path: file.path, content: file.content })
   }
   for (const path of baseline.files.keys()) {
     if (!editorPaths.has(path)) removes.push(path)

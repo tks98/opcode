@@ -39,6 +39,8 @@
   import { trackViewport, viewport } from './lib/stores/viewport.svelte.js'
 
   const MAX_UPLOAD_BYTES = 2 * 1024 * 1024
+  const MAX_IMPORT_FILES = 2000
+  const MAX_IMPORT_BYTES = 50 * 1000 * 1000
 
   const layout = readLayout()
   const narrowQuery = typeof matchMedia === 'undefined' ? null : matchMedia('(max-width: 760px)')
@@ -90,7 +92,8 @@
     document.addEventListener('focusin', onFocusIn)
     const stopTrackingViewport = trackViewport()
     projectStore.load().then(async () => {
-      await pruneMachines(new Set(projectStore.projects.filter((p) => p.kind === 'linux').map((p) => p.id)))
+      // Unless the saved projects couldn't be read, when every machine would look unused.
+      if (!projectStore.loadError) await pruneMachines(new Set(projectStore.projects.filter((p) => p.kind === 'linux').map((p) => p.id)))
       openSharedMachine()
     })
     return () => {
@@ -321,20 +324,34 @@
     try {
       const { default: JSZip } = await import('jszip')
       const zip = await JSZip.loadAsync(file)
-      const entries = Object.values(zip.files).filter((entry) => !entry.dir && !isIgnoredPath(entry.name) && !entry.name.startsWith('__MACOSX/'))
+      // Sizes as the zip states them (JSZip keeps them in _data): a small zip
+      // can expand to gigabytes, and the whole workspace is saved as one record.
+      const sizeOf = (entry) => entry._data?.uncompressedSize ?? 0
+      let tooBig = 0
+      const entries = Object.values(zip.files).filter((entry) => {
+        if (entry.dir || isIgnoredPath(entry.name) || entry.name.startsWith('__MACOSX/')) return false
+        if (sizeOf(entry) > MAX_UPLOAD_BYTES) return (tooBig++, false)
+        return true
+      })
+      const total = entries.reduce((sum, entry) => sum + sizeOf(entry), 0)
+      if (entries.length > MAX_IMPORT_FILES || total > MAX_IMPORT_BYTES) {
+        throw new Error(`it has ${entries.length} files (${Math.round(total / 1e6)} MB); a project can import up to ${MAX_IMPORT_FILES} files and ${MAX_IMPORT_BYTES / 1e6} MB`)
+      }
       // Drop a single wrapping folder (zips of a folder usually have one).
       const roots = new Set(entries.map((e) => e.name.split('/')[0]))
       const strip = roots.size === 1 && entries.every((e) => e.name.includes('/')) ? `${[...roots][0]}/` : ''
       const files = []
       let skipped = 0
       for (const entry of entries) {
-        const text = decodeText(await entry.async('uint8array'))
+        const bytes = await entry.async('uint8array')
+        const text = bytes.length > MAX_UPLOAD_BYTES ? null : decodeText(bytes)
         if (text === null) skipped++
         else files.push({ path: entry.name.slice(strip.length), content: text })
       }
       const name = file.name.replace(/\.zip$/i, '') || 'Imported Project'
       projectStore.importProject(name, files)
-      showNotice(`Imported ${files.length} file${files.length === 1 ? '' : 's'}${skipped ? ` (skipped ${skipped} binary file${skipped === 1 ? '' : 's'})` : ''}`)
+      skipped += tooBig
+      showNotice(`Imported ${files.length} file${files.length === 1 ? '' : 's'}${skipped ? ` (skipped ${skipped} binary or large file${skipped === 1 ? '' : 's'})` : ''}`)
     } catch (error) {
       showNotice(`Could not import ${file.name}: ${error.message}`, 'error')
     }

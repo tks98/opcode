@@ -246,7 +246,8 @@ export function createOpcodeServer(config, { dist = join(ROOT, 'dist'), previewD
     : null
 
   const server = http.createServer((request, response) => {
-    const { pathname } = new URL(request.url, 'http://opcode')
+    const pathname = pathOf(request.url)
+    if (pathname === null) return response.writeHead(400).end()
     if (isPreview(request)) {
       if (request.method !== 'GET' && request.method !== 'HEAD') return response.writeHead(405, { ...PREVIEW_HEADERS, Allow: 'GET, HEAD' }).end()
       return preview(request, response, pathname)
@@ -260,11 +261,21 @@ export function createOpcodeServer(config, { dist = join(ROOT, 'dist'), previewD
     app(request, response, pathname)
   })
   server.on('upgrade', (request, socket, head) => {
-    const { pathname } = new URL(request.url, 'http://opcode')
+    const pathname = pathOf(request.url)
     if (relay && !isPreview(request) && (pathname === RELAY_PATH || pathname === RELAY_PATH.slice(0, -1))) return relay.upgrade(request, socket, head)
     socket.end('HTTP/1.1 404 Not Found\r\n\r\n')
   })
   return server
+}
+
+// A request's path, or null when the URL can't be parsed ("//[", "//h:99999/"):
+// a bad request must not take the server down.
+function pathOf(url) {
+  try {
+    return new URL(url, 'http://opcode').pathname
+  } catch {
+    return null
+  }
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {

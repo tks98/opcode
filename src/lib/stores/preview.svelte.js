@@ -50,7 +50,7 @@ class PreviewStore {
 
   /** The page shown in the preview frame. */
   get src() {
-    return this.status === 'ready' && this.url ? new URL(this.path.replace(/^\/*/, ''), this.url).href : null
+    return this.status === 'ready' && this.url ? previewUrl(this.url, this.path) : null
   }
 
   /** Show a project's server (and optionally a page of it). */
@@ -209,6 +209,22 @@ class PreviewStore {
 }
 
 export const previewStore = new PreviewStore()
+
+/**
+ * A path of a previewed server as a URL on its origin, or null. The path can
+ * come from a link a program printed, so it must never leave that origin:
+ * resolved as a URL, `/javascript:…` or `/https://elsewhere` would replace it,
+ * and the preview frame shares the app's origin until it navigates.
+ */
+export function previewUrl(serverUrl, path) {
+  const base = new URL(serverUrl)
+  try {
+    const url = new URL(base.origin + base.pathname.replace(/\/*$/, '/') + path.replace(/^[/\\]+/, ''))
+    return url.origin === base.origin ? url.href : null
+  } catch {
+    return null
+  }
+}
 
 /** A link to a server on localhost, as programs print them. */
 export function parseLocalUrl(text) {

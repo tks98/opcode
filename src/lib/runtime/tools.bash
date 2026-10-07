@@ -3,6 +3,7 @@
 #   rustc, cargo   Rust (see TOOLCHAINS.rust in languages.js)
 #   rust-tests     cargo test's runner (started by Opcode, see below)
 #   rm-tree        finishes a recursive rm (see rm in shell.js)
+#   pager          less and more (see less in shell.js)
 #
 # They run in a bash of their own rather than as functions of the
 # interactive shell: under WASIX, bash running this much shell code
@@ -455,11 +456,122 @@ __opcode_rust_test_output() {
   done < "$1"
 }
 
+# less and more (see shell.js). They read keys from /dev/tty, which WASIX
+# doesn't connect to the terminal, so they could never be quit. This pager
+# reads keys from the terminal itself. Piped input (`seq 100 | less`) can't
+# be paged, the keyboard being on the pipe's side, so it is shown whole.
+#   Space f PgDn: next page     b PgUp: previous page
+#   Enter j Down: next line     k Up: previous line
+#   d u: half a page            g G: start and end
+#   /text: find   n N: next and previous match   q: quit
+__opcode_pager() {
+  local -a files=() rows=()
+  local arg
+  for arg in "$@"; do
+    case $arg in -?* | +*) ;; *) files+=("$arg") ;; esac # less's options
+  done
+  if [ ${#files[@]} -eq 0 ] || [ ! -t 0 ] || [ ! -t 1 ]; then
+    cat -- "${files[@]}"
+    return
+  fi
+
+  local height=24 cols=80 size
+  size=$(stty size 2> /dev/null) && read -r height cols <<< "$size"
+  ((height < 2)) && height=24
+  ((cols < 10)) && cols=80
+  local page=$((height - 1)) status=0 file line tab='        '
+
+  for file in "${files[@]}"; do
+    if [ -d "$file" ]; then
+      printf '%s is a directory\n' "$file" >&2
+      status=1
+      continue
+    elif [ ! -r "$file" ]; then
+      printf '%s: No such file or directory\n' "$file" >&2
+      status=1
+      continue
+    fi
+    ((${#files[@]} > 1)) && rows+=("==> $file <==")
+    while IFS= read -r line || [ -n "$line" ]; do
+      line=${line%$'\r'}
+      line=${line//$'\t'/$tab}
+      while ((${#line} > cols)); do
+        rows+=("${line:0:cols}")
+        line=${line:cols}
+      done
+      rows+=("$line")
+    done < "$file"
+  done
+  ((${#rows[@]} == 0)) && return "$status"
+
+  local total=${#rows[@]} top=0 last key rest pattern='' message='' i out name
+  name=${files[0]}
+  ((${#files[@]} > 1)) && name="${#files[@]} files"
+  trap 'printf "\e[?1049l\e[?25h"' EXIT
+  printf '\e[?1049h\e[?25l'
+  while :; do
+    last=$((total > page ? total - page : 0))
+    ((top > last)) && top=$last
+    ((top < 0)) && top=0
+    out=$'\e[H\e[2J'
+    for ((i = top; i < top + page && i < total; i++)); do
+      out+="${rows[i]}"$'\e[K\r\n'
+    done
+    for (( ; i < top + page; i++)); do out+=$'~\r\n'; done
+    if [ -n "$message" ]; then
+      out+=$'\e[7m '"$message"$' \e[0m'
+    elif ((top >= last)); then
+      out+=$'\e[7m '"$name (END)  q quits"$' \e[0m'
+    else
+      out+=$'\e[7m '"$name  $((top * 100 / last))%  Space: next page, q: quit"$' \e[0m'
+    fi
+    printf '%s' "$out"
+    message=''
+    IFS= read -rsn1 key || break
+    if [ "$key" = $'\e' ]; then
+      IFS= read -rsn2 -t 0.05 rest
+      case $rest in '[5' | '[6') IFS= read -rsn1 -t 0.05 _ ;; esac
+      key="ESC$rest"
+    fi
+    case $key in
+      q | Q) break ;;
+      ' ' | f | $'\x06' | $'\x16' | 'ESC[6') ((top += page)) ;;
+      b | $'\x02' | 'ESC[5') ((top -= page)) ;;
+      '' | j | e | $'\x0e' | 'ESC[B') ((top += 1)) ;;
+      k | y | $'\x10' | 'ESC[A') ((top -= 1)) ;;
+      d) ((top += page / 2)) ;;
+      u) ((top -= page / 2)) ;;
+      g | '<' | 'ESC[H') top=0 ;;
+      G | '>' | 'ESC[F') top=$last ;;
+      / | n | N)
+        if [ "$key" = / ]; then
+          printf '\r\e[K/\e[?25h'
+          IFS= read -r pattern
+          printf '\e[?25l'
+        fi
+        if [ -z "$pattern" ]; then
+          continue
+        fi
+        if [ "$key" = N ]; then
+          for ((i = top - 1; i >= 0; i--)); do [[ ${rows[i]} == *"$pattern"* ]] && break; done
+        else
+          for ((i = top + 1; i < total; i++)); do [[ ${rows[i]} == *"$pattern"* ]] && break; done
+          ((i >= total)) && i=-1
+        fi
+        if ((i >= 0)); then top=$i; else message="Pattern not found: $pattern"; fi
+        ;;
+      h | H) message='Space f: next page  b: back  j k: line  g G: start/end  /: find  q: quit' ;;
+    esac
+  done
+  return "$status"
+}
+
 case $1 in
   rustc | cargo) "$@" ;;
   rust-tests) shift; __opcode_rust_tests "$@" ;;
   rm-tree) shift; __opcode_rm_finish "$@" ;;
-  *) echo "usage: tools.sh rustc|cargo|rust-tests|rm-tree [args]" >&2; (exit 2) ;;
+  pager) shift; __opcode_pager "$@" ;;
+  *) echo "usage: tools.sh rustc|cargo|rust-tests|rm-tree|pager [args]" >&2; (exit 2) ;;
 esac
 # WASIX reports exit statuses above 78 as 79: leave the real one for the
 # shell (see __opcode_tool in shell.js).

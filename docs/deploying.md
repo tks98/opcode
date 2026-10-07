@@ -58,14 +58,14 @@ Browsers can't open network connections, so terminals and Linux machines tunnel 
 
 ```bash
 npm install
-node scripts/wisp-server.mjs --port 8090 --origin https://your-opcode-site
+node scripts/wisp-server.mjs --host 0.0.0.0 --port 8090 --origin https://your-opcode-site
  behind TLS (a reverse proxy, or a host such as Fly.io or Render), then build the app with:
 VITE_WISP_URL=wss://relay.your-site/ npm run build
 ```
 
 (or set `relay: 'wss://relay.your-site/'` in `config.js`; the Docker image can also run the relay itself, with `OPCODE_RELAY=on`).
 
-It is an open relay for anyone who can reach it, so restrict `--origin` to your site and run it where outgoing traffic is acceptable. It refuses private and local addresses (your network, cloud metadata endpoints) and outgoing mail ports by default (`--allow-private`, `--block-ports 25,465,587`), and limits streams per connection (`--max-streams`). `--via-proxy http://proxy:3128` sends connections through an HTTP proxy. Students or teachers can also point a copy of Opcode at a relay in the *Internet* settings in the status bar (saved in their browser). `npm run relay` starts one locally on port 8090 for development (`VITE_WISP_URL=ws://localhost:8090/ npm run dev`).
+It listens on `127.0.0.1` unless given `--host`. Reachable from the internet, it is an open relay: `--origin` only stops other websites' pages from using it (any other program can send the header it expects), so run it where outgoing traffic from strangers is acceptable. It refuses private and local addresses (your network, cloud metadata endpoints) and outgoing mail ports by default (`--allow-private`, `--block-ports 25,465,587`), and limits streams per connection (`--max-streams`). `--via-proxy http://proxy:3128` sends connections through an HTTP proxy. Students or teachers can also point a copy of Opcode at a relay in the *Internet* settings in the status bar (saved in their browser). `npm run relay` starts one locally on port 8090 for development (`VITE_WISP_URL=ws://localhost:8090/ npm run dev`).
 
 The production build includes the Wasmer SDK's own dependency for this, the Wisp client [`@mercuryworkshop/wisp-js`](https://github.com/MercuryWorkshop/wisp-client-js) (AGPL-3.0 in the version the SDK uses), bundled as `wasmer-sdk/deps/wisp-client.js`.
 

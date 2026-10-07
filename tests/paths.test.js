@@ -47,3 +47,18 @@ describe('path helpers', () => {
     expect(fromWorkspacePath('/tmp/x')).toBeNull()
   })
 })
+
+describe('Opcode\'s own folder', () => {
+  it('is reserved, whichever slashes a path uses', () => {
+    expect(() => normalizePath('.opcode/bashrc')).toThrow(/reserved/)
+    expect(() => normalizePath('.opcode\\bashrc')).toThrow(/reserved/)
+    expect(tryNormalizePath('/.opcode/tools.sh')).toBeNull()
+    expect(normalizePath('src/.opcode/notes.txt')).toBe('src/.opcode/notes.txt')
+  })
+
+  it('is ignored with backslashes too', () => {
+    expect(isIgnoredPath('.opcode\\bashrc')).toBe(true)
+    expect(isIgnoredPath('node_modules\\x\\index.js')).toBe(true)
+    expect(isIgnoredPath('src\\main.py')).toBe(false)
+  })
+})

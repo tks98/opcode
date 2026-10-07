@@ -5,7 +5,7 @@
 // server, which makes the real connections (Wisp protocol v1:
 // https://github.com/MercuryWorkshop/wisp-protocol).
 //
-//   node scripts/wisp-server.mjs [--port 8090] [--host 0.0.0.0]
+//   node scripts/wisp-server.mjs [--port 8090] [--host 127.0.0.1 (0.0.0.0 for every interface)]
 //        [--origin https://your-opcode-site] ... [--allow-private]
 //        [--block-ports 25,465,587] [--max-streams 64] [--via-proxy URL]
 //        [--dns-upstream https://cloudflare-dns.com/dns-query]
@@ -39,7 +39,7 @@ const CONNECT_TIMEOUT_MS = 15_000
 // ---------------------------------------------------------------------------
 
 export function parseArgs(argv) {
-  const options = { port: 8090, host: '0.0.0.0', origins: [], allowPrivate: false, blockPorts: [25, 465, 587], maxStreams: 64, viaProxy: null, dnsUpstream: 'https://cloudflare-dns.com/dns-query' }
+  const options = { port: 8090, host: '127.0.0.1', origins: [], allowPrivate: false, blockPorts: [25, 465, 587], maxStreams: 64, viaProxy: null, dnsUpstream: 'https://cloudflare-dns.com/dns-query' }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     const value = () => argv[++i]
@@ -143,30 +143,48 @@ async function serveDns(request, response, options, cors) {
     response.writeHead(204, { ...cors, 'Access-Control-Allow-Methods': 'GET, POST', 'Access-Control-Allow-Headers': 'content-type, accept', 'Access-Control-Max-Age': '86400' }).end()
     return
   }
-  const params = new URL(request.url, 'http://relay').searchParams
-  if (request.method === 'GET' && params.has('name')) return serveDnsJson(params, response, options, cors)
-  let query
-  if (request.method === 'GET') {
-    const encoded = new URL(request.url, 'http://relay').searchParams.get('dns') ?? ''
-    query = Buffer.from(encoded.replace(/-/g, '+').replace(/_/g, '/'), 'base64')
-  } else {
-    const chunks = []
-    for await (const chunk of request) chunks.push(chunk)
-    query = Buffer.concat(chunks)
-  }
-  if (query.length < 12 || query.length > 4096) {
+  let params
+  try {
+    params = new URL(request.url, 'http://relay').searchParams
+  } catch {
     response.writeHead(400, cors).end()
     return
   }
+  if (request.method === 'GET' && params.has('name')) return serveDnsJson(params, response, options, cors)
   try {
-    const upstream = await fetch(options.dnsUpstream, { method: 'POST', headers: { 'content-type': 'application/dns-message', accept: 'application/dns-message' }, body: query })
+    let query
+    if (request.method === 'GET') {
+      const encoded = params.get('dns') ?? ''
+      query = Buffer.from(encoded.replace(/-/g, '+').replace(/_/g, '/'), 'base64')
+    } else {
+      // Read at most a little over a DNS message: a client could send gigabytes.
+      const chunks = []
+      let length = 0
+      for await (const chunk of request) {
+        length += chunk.length
+        if (length > MAX_DNS_MESSAGE) break
+        chunks.push(chunk)
+      }
+      query = Buffer.concat(chunks)
+      if (length > MAX_DNS_MESSAGE) query = Buffer.alloc(MAX_DNS_MESSAGE + 1)
+    }
+    if (query.length < 12 || query.length > MAX_DNS_MESSAGE) {
+      response.writeHead(400, cors).end()
+      request.destroy()
+      return
+    }
+    const upstream = await fetch(options.dnsUpstream, { method: 'POST', headers: { 'content-type': 'application/dns-message', accept: 'application/dns-message' }, body: query, signal: AbortSignal.timeout(10_000) })
     const answer = Buffer.from(await upstream.arrayBuffer())
     if (upstream.ok) rememberAnswers(answer)
     response.writeHead(upstream.status, { ...cors, 'Content-Type': 'application/dns-message', 'Cache-Control': 'no-store' }).end(answer)
-  } catch (error) {
-    response.writeHead(502, cors).end()
+  } catch {
+    // The client went away, or the upstream resolver failed.
+    if (!response.headersSent) response.writeHead(502, cors)
+    response.end()
   }
 }
+
+const MAX_DNS_MESSAGE = 4096
 
 // The JSON flavour (?name=&type=, application/dns-json), which some clients
 // use instead of DNS messages.
@@ -381,7 +399,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const options = parseArgs(process.argv.slice(2))
   const relay = createRelay(options, (request) => !options.origins.length || options.origins.includes(request.headers.origin?.replace(/\/+$/, '')))
   const server = http.createServer((request, response) => {
-    if (new URL(request.url, 'http://relay').pathname === '/dns-query') return relay.serveDns(request, response)
+    if (/^\/dns-query(\?|$)/.test(request.url)) return relay.serveDns(request, response)
     response.writeHead(200, { 'Content-Type': 'text/plain' }).end('Opcode Wisp relay. Connect with a WebSocket; DNS-over-HTTPS at /dns-query.\n')
   })
   server.on('upgrade', relay.upgrade)

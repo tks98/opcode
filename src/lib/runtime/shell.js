@@ -53,7 +53,7 @@ export const OSC_SHELL_INTEGRATION = 133
 export const OSC_CWD = 7
 
 export const BASHRC = String.raw`# Opcode terminal setup. Regenerated for every session; edits are not kept.
-export HOME=${WORKSPACE_ROOT} USER=student TERM=xterm-256color LANG=C.UTF-8 EDITOR=nano PAGER=less
+export HOME=${WORKSPACE_ROOT} USER=student TERM=xterm-256color LANG=C.UTF-8 EDITOR=nano PAGER=cat
 export TERMCAP='${TERMCAP}'
 export PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 export JAVA_HOME=${JAVA_HOME} RISTRETTO_JDK_HOME=${JAVA_HOME}
@@ -88,9 +88,17 @@ rm() {
     esac
   done
   [ -n "$recursive" ] || { command rm "$@"; return; }
+  # rm refuses these on purpose; the fallback must not empty them anyway.
+  for arg; do
+    case $arg in . | .. | ./ | ../ | */. | */.. | */./ | */../ | /) command rm "$@"; return ;; esac
+  done
   command rm "$@" 2> /dev/null && return 0
   bash "$__opcode_dir/tools.sh" rm-tree "$@"
 }
+# less reads keys from /dev/tty, which WASIX doesn't connect to the terminal,
+# so it could never be quit. tools.sh has a pager that reads the terminal.
+less() { bash "$__opcode_dir/tools.sh" pager "$@"; }
+more() { less "$@"; }
 
 __opcode_dir=${OPCODE_DIR}
 __opcode_id=${SHELL_ID_EXPANSION}
@@ -208,6 +216,11 @@ command_not_found_handle() {
   if [ "$1" = ruby ] && [ "$2" = -C ] && [ "$3" = "$PWD" ]; then shift 3 && set -- ruby "$@"; fi
   case $1 in
 ${TOOLCHAIN_CASES}
+    vim | vi | view | vimtutor | emacs)
+      printf '%s is not available in this terminal (there is no WebAssembly build of it yet).\n' "$1" >&2
+      printf 'Edit with nano (Ctrl+O saves, Ctrl+X quits) or in the editor above.\nThe Linux machines (Learn the Linux terminal) have vim.\n' >&2
+      return 127
+      ;;
     *)
       printf 'bash: %s: command not found\n' "$1" >&2
       return 127
@@ -291,7 +304,9 @@ export const SANDBOX_ENV = {
   TERMCAP,
   LANG: 'C.UTF-8',
   EDITOR: 'nano',
-  PAGER: 'less',
+  // A program's pager reads keys from /dev/tty, which WASIX doesn't have
+  // (see less below), so programs that page (python's help()) print instead.
+  PAGER: 'cat',
   PYTHONUNBUFFERED: '1',
   PYTHONDONTWRITEBYTECODE: '1',
 }

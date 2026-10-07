@@ -3,6 +3,11 @@
 // of the JDK that runs programs (java.base, see scripts/fetch-java.mjs).
 // One compiler instance is kept warm between compilations.
 
+import { patchModuleImports } from './wasmImports.js'
+
+// Safari can't list this module's imports, which TeaVM's loader asks for.
+patchModuleImports()
+
 let compiler = null
 let diagnostics = [] // of the compilation in progress
 

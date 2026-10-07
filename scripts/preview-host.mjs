@@ -74,7 +74,12 @@ if (serveIndex !== -1) {
   const port = Number(process.argv[serveIndex + 1] || 5174)
   const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8' }
   createServer((request, response) => {
-    const path = normalize(decodeURIComponent(new URL(request.url, 'http://x').pathname)).replace(/^(\.\.[/\\])+/, '')
+    let path
+    try {
+      path = normalize(decodeURIComponent(new URL(request.url, 'http://x').pathname)).replace(/^(\.\.[/\\])+/, '')
+    } catch {
+      return response.writeHead(400, HEADERS).end()
+    }
     let file = join(out, path === '/' ? 'index.html' : path)
     try {
       if (!statSync(file).isFile()) throw new Error('not a file')

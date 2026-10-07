@@ -5,7 +5,7 @@
 // UI state. Svelte 5 deep state: mutations below are tracked automatically.
 // State is persisted to IndexedDB (see persistence.js), debounced.
 
-import { loadState, saveState } from '../persistence.js'
+import { LoadError, loadState, saveState, saveStateNow } from '../persistence.js'
 import { LANGUAGES, languageForFiles } from '../languages.js'
 import { ancestors, dirname, extname, isWithin, joinPath, normalizePath, reparent, stem, tryNormalizePath } from '../paths.js'
 
@@ -99,6 +99,7 @@ export function uniquePath(project, desired) {
 
 const state = $state({
   loaded: false,
+  loadError: null, // saved projects couldn't be read: don't save over them
   projects: [],
   activeProjectId: null,
   saveError: null,
@@ -111,12 +112,14 @@ function scheduleSave() {
   saveTimer = setTimeout(flushSave, SAVE_DELAY_MS)
 }
 
+const snapshot = () => ({ version: 2, projects: $state.snapshot(state.projects), activeProjectId: state.activeProjectId })
+
 async function flushSave() {
   clearTimeout(saveTimer)
   saveTimer = null
-  if (!state.loaded) return
+  if (!state.loaded || state.loadError) return
   try {
-    await saveState({ version: 2, projects: $state.snapshot(state.projects), activeProjectId: state.activeProjectId })
+    await saveState(snapshot())
     state.saveError = null
   } catch (error) {
     state.saveError = error.message || 'Could not save your projects'
@@ -124,10 +127,18 @@ async function flushSave() {
 }
 
 if (typeof document !== 'undefined') {
-  // Persist promptly when the tab is hidden or closed.
+  // Persist promptly when the tab is hidden or closed. The IndexedDB write
+  // may not finish before the page is gone, so also keep a copy written
+  // synchronously (loadState takes the newer).
+  const saveBeforeLeaving = () => {
+    if (!saveTimer || !state.loaded || state.loadError) return
+    saveStateNow(snapshot())
+    flushSave()
+  }
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden' && saveTimer) flushSave()
+    if (document.visibilityState === 'hidden') saveBeforeLeaving()
   })
+  window.addEventListener('pagehide', saveBeforeLeaving)
 }
 
 // Remember when a project was last used (the start screen lists recent ones).
@@ -181,6 +192,8 @@ export const projectStore = {
       saved = await loadState()
     } catch (error) {
       console.warn('Could not load saved projects:', error)
+      // Not "no projects": saving now would replace them.
+      if (error instanceof LoadError) state.loadError = error.message
     }
     // No projects (a first visit) shows the start screen.
     const projects = (saved?.projects ?? []).map(migrateProject)
@@ -191,7 +204,8 @@ export const projectStore = {
   },
 
   get loaded() { return state.loaded },
-  get saveError() { return state.saveError },
+  get loadError() { return state.loadError },
+  get saveError() { return state.saveError ?? state.loadError },
   get projects() { return state.projects },
   get activeProjectId() { return state.activeProjectId },
   get activeProject() { return findProject(state.activeProjectId) ?? state.projects[0] ?? null },

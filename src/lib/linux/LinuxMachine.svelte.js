@@ -140,6 +140,7 @@ export class LinuxMachine {
   #rows = 24
   #agentBuffer = ''
   #dirty = false
+  #booting = null // a fresh boot started by a key after poweroff
   #autosaveTimer = null
   #startPromise = null
   #saveChain = Promise.resolve()
@@ -188,7 +189,11 @@ export class LinuxMachine {
 
   input(data) {
     if (this.status === 'stopped') {
-      this.#bootFresh().catch((error) => this.#fail(error))
+      // Once, however many keys arrive while it starts (each restore holds the
+      // whole machine's memory).
+      this.#booting ??= this.#bootFresh()
+        .catch((error) => this.#fail(error))
+        .finally(() => (this.#booting = null))
       return
     }
     if (this.status !== 'running') return
