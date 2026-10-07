@@ -9,7 +9,7 @@ Open Opcode and pick a language: the starter program is one click on **Run** awa
 ## Features
 
 - **Start screen**: pick a language (each card shows its starter program and how much it downloads), or carry on with a recent project. It opens on a first visit and from the logo; returning visitors go straight back to their last project
-- **Real terminal**: Bash with pipes, redirection and history (↑), coreutils, `grep`, `sed`, `find`, `tar`, `less`, `stty`, and the `nano` editor, in [xterm.js](https://xtermjs.org/)
+- **Real terminal**: Bash with pipes, redirection and history (↑), coreutils, `grep`, `sed`, `find`, `tar`, `less` (a small built-in pager), `stty`, and the `nano` editor, in [xterm.js](https://xtermjs.org/)
 - **Run button**: runs the active file in the terminal; Ctrl/Cmd+Enter does the same
 - **SQL**: `.sql` files run on SQLite and print their results as tables; `sqlite3` works in every terminal, for database files too
 - **Web pages**: HTML, CSS and JavaScript projects. Run serves the folder (`serve` in the terminal) and opens the page in the preview, which updates as you type
@@ -33,7 +33,7 @@ Open Opcode and pick a language: the starter program is one click on **Run** awa
 ## Keyboard shortcuts
 
 - `Ctrl/Cmd + Enter`: run the active file
-- `Ctrl + C` (in the terminal): stop the running program
+- `Ctrl + C` (in the terminal): stop the running program; at the prompt, drop the line you're typing
 - ``Ctrl + ` ``: show and focus the terminal
 - ``Ctrl + Shift + ` ``: open another terminal
 - `Ctrl/Cmd + S`: does nothing harmful (everything saves automatically)

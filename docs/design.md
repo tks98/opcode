@@ -50,9 +50,15 @@ Light or dark follows the system until someone presses the sun/moon button; the 
 
 Each language has a colour, shown as a strip on its start-screen card and as a small square next to its files and projects. No emoji or logos.
 
-| Python | JavaScript | C | C++ | Rust | Go | PHP | Bash | Linux |
+| Python | C | C++ | Go | Rust | JavaScript | TypeScript | C# | Java |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `#2f6fb5` | `#d9a400` | `#6b7a99` | `#3e5fa8` | `#b7410e` | `#00897b` | `#5e6fa8` | `#3f7d3a` | ink, with a `$_` mark |
+| `#2f6fb5` | `#6b7a99` | `#3e5fa8` | `#00897b` | `#b7410e` | `#d9a400` | `#3178c6` | `#7a3e9d` | `#e76f00` |
+
+| Web page | PHP | SQL | Ruby | R | Lua | Bash | Linux | Docker |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `#c2255c` | `#5e6fa8` | `#0e7490` | `#cc342d` | `#276dc3` | `#3949ab` | `#3f7d3a` | ink, with a `$_` mark | `#1d63ed`, with a container mark |
+
+The colours live in `src/lib/languages.js` (languages) and `src/lib/linux/machines.js` (machines).
 
 ## Editor and terminal colours
 
@@ -74,12 +80,13 @@ Each theme defines its syntax colours and a 16-colour terminal palette chosen so
 - **Popovers and menus** (`.popover`, `.menu-item`): 2px border, 14px radius, a 6px offset shadow. Arrow keys move through menu items, Escape closes and returns focus.
 - **Dialogs** (`.dialog`): same as popovers with an 8px shadow, over a tinted backdrop.
 - **Marks** (`.mark`): a 10px rounded square in a language's colour (`--mark`).
+- **Key bar** (`KeyBar.svelte`): on phones, a row of keys above the on-screen keyboard while a terminal has the focus. Each key is 36px tall and at least 40px wide, with a 2px border and an 8px radius, in the code font; the sticky Ctrl fills with the focus colour while it's on. Taps never take the focus from the terminal, so the keyboard stays up.
 
 ## Screens
 
-**Start screen.** "What will you make today?", eight language cards (four across, two on phones), a dashed card for the Linux lessons, and on the right the selected language's starter program with its download size, the yellow *Start coding in …* button and *Continue where you left off*. On phones the start button stays pinned to the bottom. It's shown on a first visit, from the logo, and for *New project*. Returning visitors go straight back to their last project.
+**Start screen.** "What will you make today?", sixteen language cards (four across, two on phones), two dashed cards for the Linux and Docker machines, and on the right the selected language's starter program with its download size, the yellow *Start coding in …* button and *Continue where you left off*. On phones the start button stays pinned to the bottom. It's shown on a first visit, from the logo, and for *New project*. Returning visitors go straight back to their last project.
 
-**Coding screen.** One top bar: logo (home), the project menu (switch, rename, delete, new), *Run*, *Stop*, *Preview* when a server is running, editor colours, light/dark, and a *More* menu (files, terminal, new terminal, download as ZIP, open a file, internet access). Files on the left (a drawer on phones), the editor, and the terminal below it; the terminal folds down to its header. The status bar says what's happening in plain words.
+**Coding screen.** One top bar: logo (home), the project menu (switch, rename, delete, new), *Run*, *Stop*, *Preview* when a server is running, editor colours, light/dark, and a *More* menu (files, terminal, new terminal, download as ZIP, open a file, internet access). Files on the left (a drawer on phones), the editor, and the terminal below it; the terminal folds down to its header. The status bar says what's happening in plain words. On phones, while the on-screen keyboard is up, only the panel being typed in shows (with the key bar under a terminal), and the status bar hides.
 
 ## Quality floor
 

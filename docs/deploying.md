@@ -26,7 +26,7 @@ The image is configured with environment variables (`docker run -e`, or `environ
 | `OPCODE_RELAY` | `off` | `on` gives terminals and Linux machines internet access through a relay on this server, at `/wisp/` (read [Internet relay](deploying.md#internet-relay) first). A `wss://` address uses that relay instead. With `off`, users can still pick a relay in the *Internet* settings. |
 | `OPCODE_RELAY_ARGS` | | The built-in relay's options, as `scripts/wisp-server.mjs` takes them: `--max-streams 32 --via-proxy http://proxy:3128` |
 | `OPCODE_RELAY_ORIGINS` | | Other sites whose pages may use the built-in relay (comma-separated). Pages of this site always may. |
-| `OPCODE_PREVIEW_HOST` | Wasmer's host | Serve the [web preview host](deploying.md#web-preview-host) here, to requests for that address: `https://preview.example.com/`, or `https://*.preview.example.com/` for one address per server (needs wildcard DNS and a wildcard certificate, which `compose.yaml`'s Caddy can't get by itself) |
+| `OPCODE_PREVIEW_HOST` | Wasmer's host | Serve the [web preview host](deploying.md#web-preview-host) here, to requests for that address: `https://preview.example.com/`, or `https://*.preview.example.com/` for one address per server (needs wildcard DNS and a wildcard certificate, which `compose.yaml`'s Caddy can't get by itself). Set it: Wasmer's host doesn't work at the moment (see [Web preview host](deploying.md#web-preview-host)). `compose.yaml` sets it to `preview.` your domain. |
 
 Everything on one computer, with an address for each preview (Chrome and Firefox resolve every `*.localhost` name without DNS):
 
@@ -47,7 +47,7 @@ Cross-Origin-Embedder-Policy: require-corp
 
 - **Rust**: `npm run build` first downloads the Rust toolchain (`scripts/fetch-rust.mjs`: a pinned, checksummed release of [`oligamiq/rust_wasm`](https://github.com/oligamiq/rust_wasm), MIT OR Apache-2.0) into `public/toolchains/rust/` (not in git). It needs network access once; set up a cache of that folder for CI.
 - **Java**: `npm run build` also builds Java's class library files (`scripts/fetch-java.mjs`) from a pinned, checksummed Amazon Corretto 21 JDK, downloaded once into `node_modules/.cache/opcode-java/` (about 210 MB; CI caches it).
-- **Netlify / Cloudflare Pages**: `public/_headers` is included.
+- **Netlify**: `public/_headers` is included. (Cloudflare Pages reads it too, but can't serve Opcode's largest files; see the end of this page.)
 - **Vercel**: `vercel.json` is included.
 - **GitHub Pages**: `.github/workflows/pages.yml` builds and publishes every push to `main` (turn it on in *Settings > Pages* with *Source: GitHub Actions*). Pages, like other hosts without custom headers, can't send the headers, so `coi-serviceworker.js` adds them on the first visit and reloads the page once. Behind Cloudflare (as opcode-dev.com is), a Response Header Transform Rule can set `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on every response instead, and the page loads without the reload; use SSL/TLS mode *Full*.
 - **Settings without rebuilding**: `dist/config.js` (from `public/config.js`) can set the internet relay and the web preview host, below, in place of the `VITE_*` variables the build reads.
@@ -59,7 +59,11 @@ Browsers can't open network connections, so terminals and Linux machines tunnel 
 ```bash
 npm install
 node scripts/wisp-server.mjs --host 0.0.0.0 --port 8090 --origin https://your-opcode-site
- behind TLS (a reverse proxy, or a host such as Fly.io or Render), then build the app with:
+```
+
+Put it behind TLS (a reverse proxy, or a host such as Fly.io or Render), then build the app with
+
+```bash
 VITE_WISP_URL=wss://relay.your-site/ npm run build
 ```
 
@@ -71,7 +75,7 @@ The production build includes the Wasmer SDK's own dependency for this, the Wisp
 
 ## Web preview host
 
-The preview reaches servers inside the sandbox through a service worker on a separate origin. A server owns that whole origin, so one origin can show one server at a time. By default Opcode uses Wasmer's `https://default.local.wasmer.site/`, which works like that.
+The preview reaches servers inside the sandbox through a service worker on a separate origin. A server owns that whole origin, so one origin can show one server at a time. Opcode's default is Wasmer's `https://default.local.wasmer.site/`, but as of October 2026 that host no longer serves the page the preview loads (`/.wasmer/host.html` answers 404), so the preview only works with a host of your own. opcode-dev.com's is `https://preview.opcode-dev.com/`.
 
 To host your own, run `npm run build:preview-host` and deploy `dist-preview-host/` to an origin other than the app's (it includes `_headers`, and `.nojekyll` for GitHub Pages):
 

@@ -10,5 +10,6 @@
 | [Development](development.md) | Running it locally, scripts, tests and the project's layout |
 | [Limitations](limitations.md) | What doesn't work, or works differently than on a computer |
 | [Design](design.md) | Colours, type and the notebook look |
+| [iPhone and iPad](plans/ios.md) | How Opcode was made to work on iPhone and iPad: what we found, the fixes, and what's left |
 
 Back to the [README](../README.md).

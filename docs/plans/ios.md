@@ -2,6 +2,12 @@
 
 A plan for finding out why Opcode hangs on iPhones and making it work on iPhone and iPad, to be carried out on a Mac (Safari, the iOS and iPadOS Simulators, and real devices). Every browser on iPhone and iPad uses WebKit, Safari's engine, so "iOS support" means "WebKit support, within the device's memory limits". Safari on macOS uses the same WebKit as Safari on iOS and iPadOS of the same version (Safari 27 ships with macOS, iOS and iPadOS 27).
 
+## Status (7 Oct 2026)
+
+- **Done:** the hang is fixed (iOS's limit on WebAssembly memory, and SDK workers loading at once; see *What we know so far*), and Bash, Python and Rust run on a real iPhone. The touch and keyboard work of Phase 4 is in: the layout follows the on-screen keyboard, a finger scrolls the terminal, there's a key bar, long commands wrap, and Ctrl+C works at the prompt. `less` is a built-in pager, javac works in Safari, and a page left open across a deploy reloads instead of failing with "Importing a module script failed" (what the Linux and Docker machines showed on an iPhone).
+- **Also done:** opcode-dev.com is behind Cloudflare, which sends the isolation headers (so H5 no longer applies there), and its web preview has its own host, `preview.opcode-dev.com`, since Wasmer's default host stopped serving its page. The preview works in Safari 27 on a Mac; it isn't checked on iPhone or iPad yet.
+- **Still open:** Phase 1 (the diagnostics log, the capability probe and the unsupported-browser message), the rest of the support matrix (C and C++, Go and the other toolchains, the preview and the machines on devices, a real iPad, Split View and hardware keyboards), Phase 5's WebKit tests in CI, and reporting the memory limit to the Wasmer SDK. How to test on the Simulators and devices is in [Development](../development.md#testing-on-iphone-and-ipad).
+
 ## Goals
 
 1. **Never hang.** If something can't run on a device, Opcode says so, in plain words, instead of freezing.
@@ -71,7 +77,7 @@ If `echo` and `ls` work and Python doesn't, it's probably size (H2). If `ls` han
   - a key bar (`components/KeyBar.svelte`) above the on-screen keyboard while a terminal has the focus: Esc, Tab, a sticky Ctrl (then a letter), Ctrl+C, the arrows, `|`, `~`, `/` and `-`. Its taps keep the focus in the terminal, so the keyboard stays up;
   - Ctrl+C at the prompt drops the half-typed line and shows a new prompt, as in a native terminal (Bash at its prompt doesn't get SIGINT under WASIX). This was broken on every platform.
 
-  Still open: `less` (and so `man` and `git log`) doesn't return to the prompt after `q`, on every platform, with or without the termcap entry.
+  Also fixed since: `less` (and so `man` and `git log`) didn't return to the prompt after `q`, on every platform: WASIX connects no `/dev/tty`, where `less` reads its keys, so `less` and `more` are now a small pager in `tools.sh`.
 - **Safari 27 or later is required** (`docs/limitations.md`), because of the Wasmer SDK. A device on iOS or iPadOS 26 or earlier is expected to fail, whatever else is true.
 - **A separate bug, on every platform (fixed 7 Oct 2026, see above):** a command wider than the terminal shows up as `<ustc main.rs -o main && ./main`, printed twice. Bash's line editor scrolls the line sideways because it can't find a description of the terminal (`TERM=xterm-256color`, but the sandbox has no terminfo or termcap entry for it), and `bind 'set horizontal-scroll-mode off'` doesn't help. It shows on phones because their terminals are about 40 columns wide. It doesn't depend on the rest of this plan, so it can be fixed now (see Phase 4).
 - **The Wasmer SDK** (the runtime behind the sandbox) is tested in Playwright's WebKit, and its README mentions Safari 27 and later. It uses WebAssembly JSPI (`WebAssembly.Suspending`, `WebAssembly.promising`), `Atomics.waitAsync`, `SharedArrayBuffer` and a Web Worker per process.
@@ -168,14 +174,14 @@ Then follow the result:
 
 | | Safari (Mac) | iOS Simulator | iPadOS Simulator | iPhone (model, iOS) | iPad (model, iPadOS) | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| Start screen, editor, terminal (Bash) | Works | Works with the fix (before it, later processes never started) | Same as iOS | | | 27.0 Simulators, 7 Oct 2026 |
-| Python | | Works with the fix (up to 64 MiB) | Works with the fix | | | |
+| Start screen, editor, terminal (Bash) | Works | Works with the fix (before it, later processes never started) | Same as iOS | Works with the fix | | 27.0 Simulators and a real iPhone, 7 Oct 2026 |
+| Python | Works | Works with the fix (up to 64 MiB) | Works with the fix | Works with the fix | | |
 | JavaScript (Node.js), TypeScript | | | | | | |
-| Web page and preview | | | | | | |
+| Web page and preview | Works (live site, `preview.opcode-dev.com`) | | | | | Wasmer's default preview host no longer works (Oct 2026) |
 | SQL, Lua, Bash | | | | | | |
 | C and C++ | | | | | | Clang is 76 MB |
 | Java, C#, Go, Ruby, PHP, R | | | | | | |
-| Rust | | | | | | 95 MB, up to 1 GiB of memory |
+| Rust | | Works with the fix (rustc keeps its 1 GiB) | Works with the fix | Works with the fix | | 95 MB, up to 1 GiB of memory |
 | Linux machine | | Boots, runs commands | | | | 256 MB guest |
 | Docker machine | | | | | | 1 GB guest: likely too big for a phone |
 | Split View and Stage Manager | — | — | | — | | iPad only |
