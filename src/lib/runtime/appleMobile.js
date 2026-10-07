@@ -13,6 +13,13 @@
 export const APPLE_MOBILE_RUNTIME_PAGES = 8192
 /** Each program's memory, reserved in the SDK's workers: 64 MiB. */
 export const APPLE_MOBILE_PROGRAM_PAGES = 1024
+/**
+ * Programs built without a memory limit declare about 2 GiB (Bash, Python)
+ * or 4 GiB, and only those are capped. A program that chose a smaller one
+ * keeps it: rustc declares 1 GiB, and fails to load Rust's standard library
+ * in 64 MiB.
+ */
+const DEFAULT_MAXIMUM_PAGES = 32767
 /** Don't shrink a reservation below this while retrying: 16 MiB. */
 const MIN_PAGES = 256
 
@@ -25,17 +32,20 @@ export function isAppleMobile(navigator = globalThis.navigator) {
 
 /**
  * Make `webAssembly.Memory` reserve at most `maxPages` (64 KiB each) for
- * shared memories, retrying with half the size while the browser is out of
- * address space: a program with less memory is better than one that never
- * starts. A program that needs more fails with its own out-of-memory error.
+ * shared memories that declare the default maximum, and retry any shared
+ * memory with half the size while the browser is out of address space: a
+ * program with less memory is better than one that never starts. A program
+ * that needs more fails with its own out-of-memory error.
  */
 export function capSharedMemories(webAssembly, maxPages) {
   const NativeMemory = webAssembly.Memory
   if (NativeMemory.opcodeCapped) return
   function Memory(descriptor) {
-    if (!descriptor?.shared || !(descriptor.maximum > maxPages)) return new NativeMemory(descriptor)
-    const floor = Math.max(descriptor.initial ?? 0, MIN_PAGES)
-    let maximum = Math.max(maxPages, descriptor.initial ?? 0)
+    if (!descriptor?.shared || !(descriptor.maximum > MIN_PAGES)) return new NativeMemory(descriptor)
+    const initial = descriptor.initial ?? 0
+    const floor = Math.max(initial, MIN_PAGES)
+    const wanted = descriptor.maximum >= DEFAULT_MAXIMUM_PAGES ? Math.min(descriptor.maximum, maxPages) : descriptor.maximum
+    let maximum = Math.max(wanted, initial)
     for (;;) {
       try {
         return new NativeMemory({ ...descriptor, maximum })

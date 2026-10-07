@@ -39,6 +39,21 @@ describe('capSharedMemories', () => {
     expect(new webAssembly.Memory({ initial: 1, maximum: 65536 }).descriptor.maximum).toBe(65536)
   })
 
+  it('keeps a maximum the program chose, and caps only the default one', () => {
+    const { webAssembly } = fakeWebAssembly()
+    capSharedMemories(webAssembly, APPLE_MOBILE_PROGRAM_PAGES)
+    expect(new webAssembly.Memory({ initial: 399, maximum: 16384, shared: true }).descriptor.maximum).toBe(16384)
+    expect(new webAssembly.Memory({ initial: 133, maximum: 32767, shared: true }).descriptor.maximum).toBe(APPLE_MOBILE_PROGRAM_PAGES)
+    expect(new webAssembly.Memory({ initial: 25, maximum: 65536, shared: true }).descriptor.maximum).toBe(APPLE_MOBILE_PROGRAM_PAGES)
+  })
+
+  it('retries a chosen maximum with half the size too', () => {
+    const { webAssembly, requested } = fakeWebAssembly(5000)
+    capSharedMemories(webAssembly, APPLE_MOBILE_PROGRAM_PAGES)
+    expect(new webAssembly.Memory({ initial: 399, maximum: 16384, shared: true }).descriptor.maximum).toBe(4096)
+    expect(requested).toEqual([16384, 8192, 4096])
+  })
+
   it('never asks for less than the initial size', () => {
     const { webAssembly } = fakeWebAssembly()
     capSharedMemories(webAssembly, APPLE_MOBILE_PROGRAM_PAGES)
