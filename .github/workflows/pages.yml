@@ -4,7 +4,7 @@ name: GitHub Pages
 # Turn it on once in the repository's Settings > Pages (Source: GitHub
 # Actions). Pages can't send the cross-origin isolation headers Opcode needs,
 # so public/coi-serviceworker.js adds them in the browser (the first visit
-# reloads once).
+# reloads once). opcode-dev.com is behind Cloudflare, which sends them.
 
 on:
   push:
@@ -39,6 +39,9 @@ jobs:
             node_modules/.cache/opcode-csharp
           key: toolchains-${{ hashFiles('scripts/fetch-java.mjs', 'scripts/fetch-csharp.mjs') }}
       - run: npm run build
+        env:
+          # A Cloudflare Worker: deploy/preview-host.wrangler.toml.
+          VITE_PREVIEW_HOST: https://preview.opcode-dev.com/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

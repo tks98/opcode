@@ -1,0 +1,11 @@
+# opcode-dev.com's web preview host: a Cloudflare Worker on its own domain
+# (see docs/deploying.md, "Web preview host"). Deploy it with
+#   npm run build:preview-host && npx wrangler deploy -c deploy/preview-host.wrangler.toml
+# and again after updating @wasmer/sdk, whose files it serves. For your own
+# site, change the name and the domain.
+name = "opcode-preview"
+main = "../dist-preview-host/worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+preview_urls = false
+routes = [{ pattern = "preview.opcode-dev.com", custom_domain = true }]

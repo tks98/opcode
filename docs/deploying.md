@@ -49,7 +49,7 @@ Cross-Origin-Embedder-Policy: require-corp
 - **Java**: `npm run build` also builds Java's class library files (`scripts/fetch-java.mjs`) from a pinned, checksummed Amazon Corretto 21 JDK, downloaded once into `node_modules/.cache/opcode-java/` (about 210 MB; CI caches it).
 - **Netlify / Cloudflare Pages**: `public/_headers` is included.
 - **Vercel**: `vercel.json` is included.
-- **GitHub Pages**: `.github/workflows/pages.yml` builds and publishes every push to `main` (turn it on in *Settings > Pages* with *Source: GitHub Actions*). Pages, like other hosts without custom headers, can't send the headers, so `coi-serviceworker.js` adds them on the first visit and reloads the page once.
+- **GitHub Pages**: `.github/workflows/pages.yml` builds and publishes every push to `main` (turn it on in *Settings > Pages* with *Source: GitHub Actions*). Pages, like other hosts without custom headers, can't send the headers, so `coi-serviceworker.js` adds them on the first visit and reloads the page once. Behind Cloudflare (as opcode-dev.com is), a Response Header Transform Rule can set `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on every response instead, and the page loads without the reload; use SSL/TLS mode *Full*.
 - **Settings without rebuilding**: `dist/config.js` (from `public/config.js`) can set the internet relay and the web preview host, below, in place of the `VITE_*` variables the build reads.
 
 ## Internet relay
@@ -75,7 +75,7 @@ The preview reaches servers inside the sandbox through a service worker on a sep
 
 To host your own, run `npm run build:preview-host` and deploy `dist-preview-host/` to an origin other than the app's (it includes `_headers`, and `.nojekyll` for GitHub Pages):
 
-- **One origin** (one preview at a time): build the app with `VITE_PREVIEW_HOST=https://preview.example.com/ npm run build` (or set `previewHost` in `config.js`; the Docker image serves the host itself, with `OPCODE_PREVIEW_HOST`).
+- **One origin** (one preview at a time): build the app with `VITE_PREVIEW_HOST=https://preview.example.com/ npm run build` (or set `previewHost` in `config.js`; the Docker image serves the host itself, with `OPCODE_PREVIEW_HOST`). On Cloudflare, `dist-preview-host/worker.js` serves it as a Worker on its own domain: `deploy/preview-host.wrangler.toml` is opcode-dev.com's.
 - **A wildcard origin** (one address per server, any number at once): serve the same files on every subdomain, with wildcard DNS and a wildcard certificate, and build with `VITE_PREVIEW_HOST=https://*.preview.example.com/ npm run build`. Each server gets a random name such as `https://p3k9x0q2m.preview.example.com/`. On Cloudflare, deploy `dist-preview-host/worker.js` as a Worker routed to `*.preview.example.com/*` (it holds the files itself).
 
 `npm run preview-host` serves the host locally on port 5174, on `localhost` and every `*.localhost` subdomain, which Chrome resolves without DNS setup: `VITE_PREVIEW_HOST='http://*.localhost:5174/' npm run dev` gives per-server addresses in development (the Playwright tests use that).
