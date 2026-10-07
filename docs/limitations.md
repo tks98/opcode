@@ -21,3 +21,4 @@
 - **Web pages' console**: `console.log` and errors from a page show in the browser's developer tools (open the page in its own tab with ↗), not in Opcode's terminal.
 - **Files the terminal creates that aren't text** (such as compiled programs) live only in the running session; they aren't saved or exported.
 - **Browsers**: works in current Chrome, Edge and Firefox. Safari support depends on the Wasmer SDK (Safari 27+).
+- **iPhone and iPad** (every browser there uses Safari's engine): each program can use up to 64 MiB of memory, because iOS lets a page reserve only a few GiB of WebAssembly memory in all; a program that needs more stops with its own out-of-memory error. The larger toolchains (Rust, C and C++, Go) are not yet tested there. See `docs/plans/ios.md`.

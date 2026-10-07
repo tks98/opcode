@@ -1,7 +1,30 @@
 // The single Wasmer client shared by every project sandbox. The SDK (and its
 // ~6 MB runtime) is imported lazily so the editor loads without it.
 
+import { APPLE_MOBILE_RUNTIME_PAGES, capSharedMemories, isAppleMobile } from './appleMobile.js'
+import appleWorkerUrl from './wasmerWorker.apple.js?worker&url'
+
 let clientPromise = null
+
+/**
+ * On an iPhone or iPad, reserve a smaller memory for the SDK itself (the
+ * page creates it) and start the SDK's workers through wasmerWorker.apple.js,
+ * which caps the programs' memories.
+ */
+function installAppleMobileWorkarounds() {
+  if (!isAppleMobile()) return
+  capSharedMemories(WebAssembly, APPLE_MOBILE_RUNTIME_PAGES)
+  const NativeWorker = globalThis.Worker
+  if (NativeWorker.opcodeApple) return
+  globalThis.Worker = class Worker extends NativeWorker {
+    static opcodeApple = true
+    constructor(url, options) {
+      const href = String(url)
+      const sdkWorker = options?.type === 'module' && /\/@?wasmer[-/]sdk\/dist\/browser-worker\.js$/.test(href)
+      super(sdkWorker ? `${new URL(appleWorkerUrl, document.baseURI).href}#${encodeURIComponent(href)}` : url, options)
+    }
+  }
+}
 
 function importSdk() {
   if (import.meta.env.DEV) return import('@wasmer/sdk')
@@ -27,6 +50,7 @@ export function getWasmer() {
     clientPromise = (async () => {
       const problem = environmentProblem()
       if (problem) throw new EnvironmentError(problem)
+      installAppleMobileWorkarounds()
       const { Wasmer } = await importSdk()
       const client = new Wasmer()
       await client.ready()
