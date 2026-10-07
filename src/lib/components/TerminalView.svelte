@@ -11,6 +11,7 @@
   import { CODE_FONT, codeFontReady, xtermTheme } from '../editorThemes.js'
   import { themeStore } from '../stores/theme.svelte.js'
   import { mayTakeFocus } from '../actions.js'
+  import { enableTouchScroll } from '../terminalTouch.js'
 
   // onLink(uri) returns true when it handled a clicked link.
   let { session, visible = true, onLink = () => false } = $props()
@@ -30,6 +31,7 @@
     let disposed = false
     let resizeObserver = null
     let view = null
+    let stopTouchScroll = null
 
     Promise.all([
       import('@xterm/xterm'),
@@ -56,6 +58,7 @@
       terminal.loadAddon(fitAddon)
       terminal.loadAddon(new WebLinksAddon((event, uri) => onLink(uri) || window.open(uri, '_blank', 'noopener')))
       terminal.open(container)
+      stopTouchScroll = enableTouchScroll(terminal, container)
 
       for (const code of [OSC_SHELL_INTEGRATION, OSC_CWD]) {
         terminal.parser.registerOscHandler(code, (data) => {
@@ -71,6 +74,7 @@
         write: (data) => terminal.write(data),
         focus: () => terminal.focus(),
         clear: () => terminal.clear(),
+        scrollToBottom: () => terminal.scrollToBottom(),
       }
       session.attach(view)
       fit()
@@ -83,6 +87,7 @@
 
     return () => {
       disposed = true
+      stopTouchScroll?.()
       resizeObserver?.disconnect()
       if (view) session.detach(view)
       terminal?.dispose()

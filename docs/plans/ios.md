@@ -59,6 +59,13 @@ If `echo` and `ls` work and Python doesn't, it's probably size (H2). If `ls` han
   - iPhone: tapping the terminal leaves the focus in the editor, so typing goes into `main.sh`, and the keyboard's Done button doesn't close the keyboard (the editor takes the focus back);
   - iPad: when the on-screen keyboard opens, the whole page scrolls up, and the toolbar (Run, Stop) and the editor go off screen;
   - the Linux terminal shows the wrapping bug below on the iPhone: part of a typed command lands on its own line.
+- **Fixed (7 Oct 2026), tested in the iOS and iPadOS 27.0 Simulators:**
+  - the app is sized and placed to the visual viewport (`lib/stores/viewport.svelte.js`), so the keyboard no longer covers it and the page doesn't scroll away; on a phone with the keyboard up, only the panel being typed in shows (and no status bar), so the terminal gets the whole space above the keyboard;
+  - a finger drag scrolls the terminal (`lib/terminalTouch.js`; xterm.js 6 scrolls with the mouse wheel only), with momentum, and a tap focuses it; the page itself no longer bounces (`overscroll-behavior: none`);
+  - iOS no longer zooms in when the editor or terminal gets the focus (their hidden inputs are 16px);
+  - Run scrolls the terminal to its end, and on a phone typing in the editor, moves the keyboard to the terminal.
+
+  Still open: a key bar (Esc, Tab, Ctrl, arrows), word wrap in the editor on phones, and the line-wrapping bug below.
 - **Safari 27 or later is required** (`docs/limitations.md`), because of the Wasmer SDK. A device on iOS or iPadOS 26 or earlier is expected to fail, whatever else is true.
 - **A separate bug, on every platform:** a command wider than the terminal shows up as `<ustc main.rs -o main && ./main`, printed twice. Bash's line editor scrolls the line sideways because it can't find a description of the terminal (`TERM=xterm-256color`, but the sandbox has no terminfo or termcap entry for it), and `bind 'set horizontal-scroll-mode off'` doesn't help. It shows on phones because their terminals are about 40 columns wide. It doesn't depend on the rest of this plan, so it can be fixed now (see Phase 4).
 - **The Wasmer SDK** (the runtime behind the sandbox) is tested in Playwright's WebKit, and its README mentions Safari 27 and later. It uses WebAssembly JSPI (`WebAssembly.Suspending`, `WebAssembly.promising`), `Atomics.waitAsync`, `SharedArrayBuffer` and a Web Worker per process.

@@ -35,6 +35,7 @@
   import Preview from './lib/components/Preview.svelte'
   import InternetSettings from './lib/components/InternetSettings.svelte'
   import { previewStore } from './lib/stores/preview.svelte.js'
+  import { trackViewport, viewport } from './lib/stores/viewport.svelte.js'
 
   const MAX_UPLOAD_BYTES = 2 * 1024 * 1024
 
@@ -56,6 +57,8 @@
   let terminal = $state(null)
   let importInput = $state(null)
   let environmentIssue = $state(null)
+  // Where the last text input focus went: 'editor', 'terminal' or null.
+  let typingIn = $state(null)
 
   let project = $derived(projectStore.activeProject)
   let activeFile = $derived(projectStore.activeFile)
@@ -67,6 +70,8 @@
   let servers = $derived((isLinux ? machine?.servers : session?.servers) ?? [])
   let showStart = $derived(home || !project)
   let editorTheme = $derived(EDITOR_THEMES[themeStore.editorTheme])
+  // Phones with the on-screen keyboard up show only the panel being typed in.
+  let keyboardFor = $derived(narrow && viewport.keyboardOpen ? typingIn : null)
 
   onMount(() => {
     environmentIssue = environmentProblem()
@@ -75,11 +80,21 @@
       sidebarOpen = !event.matches
     }
     narrowQuery?.addEventListener('change', onNarrowChange)
+    const onFocusIn = (event) => {
+      const target = event.target
+      typingIn = target.closest?.('.bottom-panel') ? 'terminal' : target.closest?.('.editor-panel') ? 'editor' : null
+    }
+    document.addEventListener('focusin', onFocusIn)
+    const stopTrackingViewport = trackViewport()
     projectStore.load().then(async () => {
       await pruneMachines(new Set(projectStore.projects.filter((p) => p.kind === 'linux').map((p) => p.id)))
       openSharedMachine()
     })
-    return () => narrowQuery?.removeEventListener('change', onNarrowChange)
+    return () => {
+      narrowQuery?.removeEventListener('change', onNarrowChange)
+      document.removeEventListener('focusin', onFocusIn)
+      stopTrackingViewport()
+    }
   })
 
   // Opening, creating or importing a project goes to the coding screen.
@@ -213,6 +228,9 @@
       return
     }
     terminalVisible = true
+    // Phones typing with the on-screen keyboard carry on in the terminal.
+    // iOS keeps the keyboard up only for a focus made during the tap itself.
+    if (narrow && viewport.keyboardOpen) terminal?.focus()
     session.run(activeFile.path)
   }
 
@@ -426,7 +444,7 @@
     {/if}
 
     {#if ideMounted && project}
-      <div class="ide" hidden={showStart} style="--editor-bg: {editorTheme.syntax.bg}; --term-bg: {editorTheme.term.bg}">
+      <div class="ide" class:typing={keyboardFor} hidden={showStart} style="--editor-bg: {editorTheme.syntax.bg}; --term-bg: {editorTheme.term.bg}">
         <TopBar
           {project}
           {session}
@@ -464,12 +482,17 @@
             {/if}
 
             <div class="editor-area" class:resizing>
-              <div class="editor-panel" class:grow={!terminalVisible} style:height={terminalVisible ? `${editorHeight}%` : null}>
+              <div
+                class="editor-panel"
+                class:grow={!terminalVisible || keyboardFor === 'editor'}
+                class:away={keyboardFor === 'terminal'}
+                style:height={terminalVisible && !keyboardFor ? `${editorHeight}%` : null}
+              >
                 <Tabs filesOpen={sidebarOpen} onToggleFiles={() => (sidebarOpen = !sidebarOpen)} />
                 <Editor onRun={runActiveFile} />
               </div>
 
-              {#if terminalVisible}
+              {#if terminalVisible && !keyboardFor}
                 <div
                   class="resize-handle"
                   class:active={resizing}
@@ -483,7 +506,7 @@
                 ></div>
               {/if}
 
-              <div class="bottom-panel" class:collapsed={!terminalVisible}>
+              <div class="bottom-panel" class:collapsed={!terminalVisible} class:away={keyboardFor === 'editor'}>
                 <Terminal bind:this={terminal} activeProjectId={project?.id} collapsed={!terminalVisible} onToggle={toggleTerminal} />
               </div>
             </div>
@@ -534,11 +557,17 @@
 </div>
 
 <style>
+  /* Sized and placed to what's visible: on iPhone and iPad the on-screen
+     keyboard covers the page instead of shortening it (lib/stores/viewport). */
   .app {
+    position: fixed;
+    top: var(--app-top, 0px);
+    left: 0;
+    right: 0;
     display: flex;
     flex-direction: column;
     height: 100vh;
-    height: 100dvh;
+    height: var(--app-height, 100dvh);
   }
 
   .loading {
@@ -655,6 +684,19 @@
 
   .bottom-panel.collapsed {
     flex: 0 0 auto;
+  }
+
+  /* Phones typing with the on-screen keyboard: only the panel being typed
+     in, and no status bar. Hidden, not removed, so nothing restarts. */
+  .editor-panel.away,
+  .bottom-panel.away,
+  .ide.typing :global(.status-bar) {
+    display: none;
+  }
+
+  /* Keep the last line clear of Safari's blur above its toolbar. */
+  .ide.typing :global(.terminal-view) {
+    padding-bottom: 12px;
   }
 
   .preview-handle {

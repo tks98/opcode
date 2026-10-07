@@ -539,6 +539,8 @@ export class Shell {
     this.#sentAt = performance.now()
     this.#atPrompt = false
     await this.#process?.stdin?.write(`\x15${command}\r`)
+    // Show what the command prints, even if the terminal was scrolled back.
+    this.#view?.scrollToBottom?.()
     this.#view?.focus()
   }
 
