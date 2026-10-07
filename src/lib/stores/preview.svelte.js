@@ -47,6 +47,7 @@ class PreviewStore {
   #seen = new Map() // projectId -> ports already announced
   #routes = new Map() // `${projectId}:${port}` -> { server, url }: live routes into sandboxes
   #names = new Map() // same keys -> host name (per-server hosts), kept for the visit
+  #queue = Promise.resolve() // a single host's connections, one at a time
 
   /** The page shown in the preview frame. */
   get src() {
@@ -148,7 +149,8 @@ class PreviewStore {
 
   async #connect() {
     const attempt = ++this.#attempt
-    const key = keyOf(this.projectId, this.port)
+    const { projectId, port } = this
+    const key = keyOf(projectId, port)
     const route = this.#routes.get(key)
     if (route) {
       this.url = route.url
@@ -158,24 +160,30 @@ class PreviewStore {
       return
     }
     this.url = null
-    if (!PER_SERVER_HOSTS) await this.#closeRoutes(() => true)
     // A terminal project's sandbox, or a Linux project's machine.
-    const session = sessionStore.get(this.projectId) ?? linuxStore.get(this.projectId)
+    const session = sessionStore.get(projectId) ?? linuxStore.get(projectId)
     if (!session) {
       this.status = 'stopped'
       return
     }
+    // Before any wait: a show() of the same server meanwhile joins this one.
     this.status = 'connecting'
     this.error = null
+    // A single host routes one server at a time, so connections take turns,
+    // each closing the last route before exposing its server.
+    const done = PER_SERVER_HOSTS ? null : await this.#turn()
     try {
+      if (attempt !== this.#attempt) return
       let host = PREVIEW_HOST
       if (PER_SERVER_HOSTS) {
         if (!this.#names.has(key)) this.#names.set(key, newServerName())
         host = previewHostFor(this.#names.get(key))
+      } else {
+        await this.#closeRoutes(() => true)
       }
-      const server = await session.exposePort(this.port, host)
+      const server = await session.exposePort(port, host)
       if (attempt !== this.#attempt && !PER_SERVER_HOSTS) {
-        server.close().catch(() => {})
+        await server.close().catch(() => {})
         return
       }
       this.#routes.set(key, { server, url: server.url.href })
@@ -190,7 +198,18 @@ class PreviewStore {
       this.error = /already exposes another/.test(error?.message)
         ? 'Another Opcode tab is showing a preview. Close that preview (or tab), then press Retry.'
         : describeError(error)
+    } finally {
+      done?.()
     }
+  }
+
+  /** Waits for the single host to be free; returns the function that frees it. */
+  async #turn() {
+    const previous = this.#queue
+    let done
+    this.#queue = new Promise((resolve) => (done = resolve))
+    await previous
+    return done
   }
 
   async retry() {
