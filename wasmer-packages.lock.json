@@ -1,0 +1,344 @@
+{
+  "sdk": "@wasmer/sdk 0.19",
+  "info": {
+    "defaultFrontend": "https://wasmer.io/"
+  },
+  "packages": {
+    "php/php": {
+      "version": "8.3.403",
+      "url": "https://cdn.wasmer.io/webcimages/da8d3fcfcf02d2401787532c4af3fdaf5b680b05144a9591ca70b97131ee2f32.webc",
+      "sha256": "da8d3fcfcf02d2401787532c4af3fdaf5b680b05144a9591ca70b97131ee2f32",
+      "size": 85700002,
+      "answer": {
+        "packageName": "php",
+        "namespace": "php",
+        "versions": [
+          {
+            "version": "8.3.403",
+            "isArchived": false,
+            "v2": {
+              "piritaDownloadUrl": null,
+              "piritaSha256Hash": null,
+              "webcManifest": null,
+              "webcSize": null
+            },
+            "v3": {
+              "piritaDownloadUrl": "https://cdn.wasmer.io/webcimages/da8d3fcfcf02d2401787532c4af3fdaf5b680b05144a9591ca70b97131ee2f32.webc",
+              "piritaSha256Hash": "da8d3fcfcf02d2401787532c4af3fdaf5b680b05144a9591ca70b97131ee2f32",
+              "webcManifest": "{\"atoms\":{\"php\":{\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:v2BqtDvcgFbY+dX58bjuUunWV71C+OqdbK5GoOcHFo8=\"}},\"commands\":{\"php\":{\"annotations\":{\"atom\":{\"name\":\"php\"},\"wasi\":{\"atom\":\"php\"}},\"runner\":\"https://webc.org/runner/wasi\"}},\"entrypoint\":\"php\",\"package\":{\"fs\":[{\"from\":null,\"mount_path\":\"/etc/ssl\",\"volume_name\":\"/php-wasix-deps/openssl/ssl\"},{\"from\":null,\"mount_path\":\"/icu\",\"volume_name\":\"/php-wasix-deps/icu\"}],\"wapm\":{\"readme\":{\"path\":\"/README.md\",\"volume\":\"metadata\"}}}}",
+              "webcSize": 85700002
+            }
+          }
+        ]
+      }
+    },
+    "python/python": {
+      "version": "3.13.20",
+      "url": "https://cdn.wasmer.io/webcimages/a9fa8202f1bf6a4eca8d31ee5f2b1970c8f45af5c5520cc954d28a133333d8e7.webc",
+      "sha256": "a9fa8202f1bf6a4eca8d31ee5f2b1970c8f45af5c5520cc954d28a133333d8e7",
+      "size": 61744083,
+      "answer": {
+        "packageName": "python",
+        "namespace": "python",
+        "versions": [
+          {
+            "version": "3.13.20",
+            "isArchived": false,
+            "v2": {
+              "piritaDownloadUrl": null,
+              "piritaSha256Hash": null,
+              "webcManifest": null,
+              "webcSize": null
+            },
+            "v3": {
+              "piritaDownloadUrl": "https://cdn.wasmer.io/webcimages/a9fa8202f1bf6a4eca8d31ee5f2b1970c8f45af5c5520cc954d28a133333d8e7.webc",
+              "piritaSha256Hash": "a9fa8202f1bf6a4eca8d31ee5f2b1970c8f45af5c5520cc954d28a133333d8e7",
+              "webcManifest": "{\"atoms\":{\"python\":{\"annotations\":{\"wasm\":{\"features\":[\"simd\",\"bulk-memory\",\"reference-types\",\"multi-value\",\"threads\",\"exception-handling\",\"multi-memory\"]}},\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:P8SHkuj2ZzM6Y5f9nOaWGlp2zWkWDFr2rwdKMsC68/Q=\"}},\"commands\":{\"pip\":{\"annotations\":{\"atom\":{\"name\":\"python\"},\"wasi\":{\"atom\":\"python\",\"env\":[\"PYTHONEXECUTABLE=/bin/python3.13\",\"SSL_CERT_DIR=/etc/ssl/certs\",\"SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt\"],\"main-args\":[\"-m\",\"pip\"]}},\"runner\":\"https://webc.org/runner/wasi\"},\"python\":{\"annotations\":{\"atom\":{\"name\":\"python\"},\"wasi\":{\"atom\":\"python\",\"env\":[\"PYTHONEXECUTABLE=/bin/python3.13\",\"SSL_CERT_DIR=/etc/ssl/certs\",\"SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt\"]}},\"runner\":\"https://webc.org/runner/wasi\"},\"python3\":{\"annotations\":{\"atom\":{\"name\":\"python\"},\"wasi\":{\"atom\":\"python\",\"env\":[\"PYTHONEXECUTABLE=/bin/python3.13\",\"SSL_CERT_DIR=/etc/ssl/certs\",\"SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt\"]}},\"runner\":\"https://webc.org/runner/wasi\"},\"python3.13\":{\"annotations\":{\"atom\":{\"name\":\"python\"},\"wasi\":{\"atom\":\"python\",\"env\":[\"PYTHONEXECUTABLE=/bin/python3.13\",\"SSL_CERT_DIR=/etc/ssl/certs\",\"SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt\"]}},\"runner\":\"https://webc.org/runner/wasi\"}},\"entrypoint\":\"python3.13\",\"package\":{\"fs\":[{\"from\":null,\"mount_path\":\"/etc/ssl\",\"volume_name\":\"/fs/etc/ssl\"},{\"from\":null,\"mount_path\":\"/nix/store/vlgjd2179ahfh509p1aid8fl22bw8ri3-tzdata-2026c\",\"volume_name\":\"/fs/nix/store/vlgjd2179ahfh509p1aid8fl22bw8ri3-tzdata-2026c\"},{\"from\":null,\"mount_path\":\"/nix/store/fr4ww7j073zclm9p43z5vx5720f3l2ci-openssl-static-wasm32-unknown-wasi-3.6.3\",\"volume_name\":\"/fs/nix/store/fr4ww7j073zclm9p43z5vx5720f3l2ci-openssl-static-wasm32-unknown-wasi-3.6.3\"},{\"from\":null,\"mount_path\":\"/nix/store/wf0002v5izqcb7kg59n8cilx58lcp373-python3-static-wasm32-unknown-wasi-3.13.15\",\"volume_name\":\"/fs/nix/store/wf0002v5izqcb7kg59n8cilx58lcp373-python3-static-wasm32-unknown-wasi-3.13.15\"},{\"from\":null,\"mount_path\":\"/nix/store/wlw01rhlcm43s2k900xyijba456vyjhb-ncurses-static-wasm32-unknown-wasi-6.6\",\"volume_name\":\"/fs/nix/store/wlw01rhlcm43s2k900xyijba456vyjhb-ncurses-static-wasm32-unknown-wasi-6.6\"}],\"wapm\":{\"license\":\"Python-2.0\",\"readme\":{\"path\":\"/README.md\",\"volume\":\"metadata\"}}},\"use\":{\"wasmer/bash\":\"wasmer/bash@*\"}}",
+              "webcSize": 61744083
+            }
+          }
+        ]
+      }
+    },
+    "wasmer/bash": {
+      "version": "1.0.25",
+      "url": "https://cdn.wasmer.io/webcimages/059606d132e2e6bc1afe3b432ee64dcb1b1b059815c8bb213cf3b24798ef21e1.webc",
+      "sha256": "059606d132e2e6bc1afe3b432ee64dcb1b1b059815c8bb213cf3b24798ef21e1",
+      "size": 1870786,
+      "answer": {
+        "packageName": "bash",
+        "namespace": "wasmer",
+        "versions": [
+          {
+            "version": "1.0.25",
+            "isArchived": false,
+            "v2": {
+              "piritaDownloadUrl": null,
+              "piritaSha256Hash": null,
+              "webcManifest": null,
+              "webcSize": null
+            },
+            "v3": {
+              "piritaDownloadUrl": "https://cdn.wasmer.io/webcimages/059606d132e2e6bc1afe3b432ee64dcb1b1b059815c8bb213cf3b24798ef21e1.webc",
+              "piritaSha256Hash": "059606d132e2e6bc1afe3b432ee64dcb1b1b059815c8bb213cf3b24798ef21e1",
+              "webcManifest": "{\"atoms\":{\"bash\":{\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:Wzep+V/KUPVQJLf8N7eG+oACTlUyAmbLGZNnKdJMcM4=\"}},\"commands\":{\"bash\":{\"annotations\":{\"atom\":{\"name\":\"bash\"},\"wasi\":{\"atom\":\"bash\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"sh\":{\"annotations\":{\"atom\":{\"name\":\"bash\"},\"wasi\":{\"atom\":\"bash\"}},\"runner\":\"https://webc.org/runner/wasi\"}},\"entrypoint\":\"bash\",\"package\":{\"wapm\":{\"license\":\"GNU\"}},\"use\":{\"wasmer/coreutils\":\"wasmer/coreutils@^1.0.19\"}}",
+              "webcSize": 1870786
+            }
+          }
+        ]
+      }
+    },
+    "wasmer/coreutils": {
+      "version": "1.0.27",
+      "url": "https://cdn.wasmer.io/webcimages/35028c4e6b9fa8cccdffdcab2007d1df3af31b3f2b22fb890d022d7ae723bbd3.webc",
+      "sha256": "35028c4e6b9fa8cccdffdcab2007d1df3af31b3f2b22fb890d022d7ae723bbd3",
+      "size": 12703522,
+      "answer": {
+        "packageName": "coreutils",
+        "namespace": "wasmer",
+        "versions": [
+          {
+            "version": "1.0.27",
+            "isArchived": false,
+            "v2": {
+              "piritaDownloadUrl": null,
+              "piritaSha256Hash": null,
+              "webcManifest": null,
+              "webcSize": null
+            },
+            "v3": {
+              "piritaDownloadUrl": "https://cdn.wasmer.io/webcimages/35028c4e6b9fa8cccdffdcab2007d1df3af31b3f2b22fb890d022d7ae723bbd3.webc",
+              "piritaSha256Hash": "35028c4e6b9fa8cccdffdcab2007d1df3af31b3f2b22fb890d022d7ae723bbd3",
+              "webcManifest": "{\"atoms\":{\"coreutils\":{\"annotations\":{\"wasm\":{\"features\":[\"simd\",\"bulk-memory\",\"reference-types\",\"multi-value\",\"threads\",\"exception-handling\",\"multi-memory\"]}},\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:bPkfoRzjcCPaEhQ6q2YIKflLgl0AWpwOYpccFczVE4c=\"}},\"commands\":{\"[\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"arch\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"b2sum\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"base32\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"base64\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"basename\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"basenc\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"cat\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"cksum\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"comm\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"coreutils\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"cp\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"csplit\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"cut\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"date\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"dd\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"dir\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"dircolors\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"dirname\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"echo\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"env\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"expand\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"expr\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"factor\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"false\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"fmt\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"fold\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"head\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"hostid\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"join\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"link\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"ln\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"ls\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"md5sum\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"mkdir\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"mktemp\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"mv\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"nice\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"nl\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"nohup\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"nproc\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"numfmt\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"od\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"paste\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"pathchk\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"pr\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"printenv\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"printf\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"ptx\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"pwd\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"readlink\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"realpath\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"rm\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"rmdir\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"seq\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"sha1sum\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"sha224sum\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"sha256sum\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"sha384sum\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"sha512sum\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"shred\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"shuf\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"sleep\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"sort\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"split\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"sum\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"tac\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"tail\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"tee\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"test\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"touch\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"tr\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"true\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"truncate\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"tsort\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"tty\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"uname\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"unexpand\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"uniq\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"unlink\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"vdir\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"wc\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"yes\":{\"annotations\":{\"atom\":{\"name\":\"coreutils\"},\"wasi\":{\"atom\":\"coreutils\"}},\"runner\":\"https://webc.org/runner/wasi\"}},\"entrypoint\":\"coreutils\",\"package\":{\"fs\":[{\"from\":null,\"mount_path\":\"/opt/coreutils/licenses\",\"volume_name\":\"/.wasix/licenses\"}],\"wapm\":{\"license\":\"MIT\",\"readme\":{\"path\":\"/WASIX.md\",\"volume\":\"metadata\"},\"repository\":\"https://github.com/wasix-org/coreutils\"}}}",
+              "webcSize": 12703522
+            }
+          }
+        ]
+      }
+    },
+    "wasmer/edgejs": {
+      "version": "0.2.5",
+      "url": "https://cdn.wasmer.io/webcimages/7f956b2311ed904daa2c404b85469aa86cdc4c86e772f57432820ef905ded351.webc",
+      "sha256": "7f956b2311ed904daa2c404b85469aa86cdc4c86e772f57432820ef905ded351",
+      "size": 78397959,
+      "answer": {
+        "packageName": "edgejs",
+        "namespace": "wasmer",
+        "versions": [
+          {
+            "version": "0.2.5",
+            "isArchived": false,
+            "v2": {
+              "piritaDownloadUrl": null,
+              "piritaSha256Hash": null,
+              "webcManifest": null,
+              "webcSize": null
+            },
+            "v3": {
+              "piritaDownloadUrl": "https://cdn.wasmer.io/webcimages/7f956b2311ed904daa2c404b85469aa86cdc4c86e772f57432820ef905ded351.webc",
+              "piritaSha256Hash": "7f956b2311ed904daa2c404b85469aa86cdc4c86e772f57432820ef905ded351",
+              "webcManifest": "{\"atoms\":{\"edge\":{\"annotations\":{\"wasm\":{\"features\":[\"simd\",\"bulk-memory\",\"reference-types\",\"multi-value\",\"threads\",\"exception-handling\",\"multi-memory\"]}},\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:lySKOPhpDLByomt7rTIM1iMIWaDbM0DvRmqmB2GIYmo=\"}},\"commands\":{\"edge\":{\"annotations\":{\"atom\":{\"name\":\"edge\"},\"wasi\":{\"atom\":\"edge\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"edge-npm-internal\":{\"annotations\":{\"atom\":{\"name\":\"edge\"},\"wasi\":{\"atom\":\"edge\",\"env\":[\"HOME=/tmp\",\"PATH=/bin:/usr/bin\",\"npm_config_update_notifier=false\"],\"main-args\":[\"/npm/bin/npm-cli.js\"]}},\"runner\":\"https://webc.org/runner/wasi\"},\"edgejs\":{\"annotations\":{\"atom\":{\"name\":\"edge\"},\"wasi\":{\"atom\":\"edge\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"node\":{\"annotations\":{\"atom\":{\"name\":\"edge\"},\"wasi\":{\"atom\":\"edge\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"npm\":{\"annotations\":{\"atom\":{\"name\":\"edge\"},\"wasi\":{\"atom\":\"edge\",\"env\":[\"HOME=/tmp\",\"PATH=/bin:/usr/bin\",\"npm_config_network_concurrency=4\",\"npm_config_node_linker=hoisted\",\"npm_config_npm_path=/bin/edge-npm-internal\",\"npm_config_optimistic_repeat_install=true\",\"npm_config_package_import_method=copy\",\"npm_config_store_dir=/tmp/.pnpm-store\",\"npm_config_update_notifier=false\"],\"main-args\":[\"/pnpm/edge-pnpm.cjs\"]}},\"runner\":\"https://webc.org/runner/wasi\"},\"pnpm\":{\"annotations\":{\"atom\":{\"name\":\"edge\"},\"wasi\":{\"atom\":\"edge\",\"env\":[\"HOME=/tmp\",\"PATH=/bin:/usr/bin\",\"npm_config_network_concurrency=4\",\"npm_config_node_linker=hoisted\",\"npm_config_npm_path=/bin/edge-npm-internal\",\"npm_config_optimistic_repeat_install=true\",\"npm_config_package_import_method=copy\",\"npm_config_store_dir=/tmp/.pnpm-store\",\"npm_config_update_notifier=false\"],\"main-args\":[\"/pnpm/edge-pnpm.cjs\"]}},\"runner\":\"https://webc.org/runner/wasi\"}},\"entrypoint\":\"edge\",\"package\":{\"fs\":[{\"from\":null,\"mount_path\":\"/etc\",\"volume_name\":\"/etc\"},{\"from\":null,\"mount_path\":\"/npm\",\"volume_name\":\"/npm\"},{\"from\":null,\"mount_path\":\"/pnpm\",\"volume_name\":\"/pnpm\"},{\"from\":null,\"mount_path\":\"/usr/local/ssl\",\"volume_name\":\"/ssl-certs\"}],\"wapm\":{}},\"use\":{\"wasmer/bash\":\"wasmer/bash@^1.0.25\"}}",
+              "webcSize": 78397959
+            }
+          }
+        ]
+      }
+    },
+    "wasmer/findutils": {
+      "version": "0.10.1",
+      "url": "https://cdn.wasmer.io/webcimages/4d775bd4d37f26e043a2c54e220c554a67bbe349000930f87c6bc81e4a91c1fb.webc",
+      "sha256": "4d775bd4d37f26e043a2c54e220c554a67bbe349000930f87c6bc81e4a91c1fb",
+      "size": 7093738,
+      "answer": {
+        "packageName": "findutils",
+        "namespace": "wasmer",
+        "versions": [
+          {
+            "version": "0.10.1",
+            "isArchived": false,
+            "v2": {
+              "piritaDownloadUrl": null,
+              "piritaSha256Hash": null,
+              "webcManifest": null,
+              "webcSize": null
+            },
+            "v3": {
+              "piritaDownloadUrl": "https://cdn.wasmer.io/webcimages/4d775bd4d37f26e043a2c54e220c554a67bbe349000930f87c6bc81e4a91c1fb.webc",
+              "piritaSha256Hash": "4d775bd4d37f26e043a2c54e220c554a67bbe349000930f87c6bc81e4a91c1fb",
+              "webcManifest": "{\"atoms\":{\"find\":{\"annotations\":{\"wasm\":{\"features\":[\"simd\",\"bulk-memory\",\"reference-types\",\"multi-value\",\"threads\",\"exception-handling\",\"multi-memory\"]}},\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:nFKliC6yixs8L1ojDVLnY+Bu/WN99aIH850khpV3ccU=\"},\"locate\":{\"annotations\":{\"wasm\":{\"features\":[\"simd\",\"bulk-memory\",\"reference-types\",\"multi-value\",\"threads\",\"exception-handling\",\"multi-memory\"]}},\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:ATOrq4Y5+BIFRUkcu7jomC+V2Ws8di+kOU4epbPleYA=\"},\"updatedb\":{\"annotations\":{\"wasm\":{\"features\":[\"simd\",\"bulk-memory\",\"reference-types\",\"multi-value\",\"threads\",\"exception-handling\",\"multi-memory\"]}},\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:vH+F/kZiWccd+gEqfRP2frIz2goCnc4WWlagAgOi/UA=\"},\"xargs\":{\"annotations\":{\"wasm\":{\"features\":[\"simd\",\"bulk-memory\",\"reference-types\",\"multi-value\",\"threads\",\"exception-handling\",\"multi-memory\"]}},\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:SBtBCxBBprpuhlT1lm6v2Dc+Hviztw8qfKanZn5g0PY=\"}},\"commands\":{\"find\":{\"annotations\":{\"atom\":{\"name\":\"find\"},\"wasi\":{\"atom\":\"find\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"locate\":{\"annotations\":{\"atom\":{\"name\":\"locate\"},\"wasi\":{\"atom\":\"locate\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"updatedb\":{\"annotations\":{\"atom\":{\"name\":\"updatedb\"},\"wasi\":{\"atom\":\"updatedb\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"xargs\":{\"annotations\":{\"atom\":{\"name\":\"xargs\"},\"wasi\":{\"atom\":\"xargs\"}},\"runner\":\"https://webc.org/runner/wasi\"}},\"entrypoint\":\"find\",\"package\":{\"fs\":[{\"from\":null,\"mount_path\":\"/opt/findutils/licenses\",\"volume_name\":\"/.wasix/licenses\"}],\"wapm\":{\"license\":\"MIT\",\"readme\":{\"path\":\"/WASIX.md\",\"volume\":\"metadata\"},\"repository\":\"https://github.com/wasix-org/findutils\"}}}",
+              "webcSize": 7093738
+            }
+          }
+        ]
+      }
+    },
+    "wasmer/grep": {
+      "version": "3.12.0",
+      "url": "https://cdn.wasmer.io/webcimages/42a2dd5452990c94a51036cfb5eb9574899beccb5ce8f83f75995f7ac5e0e1ca.webc",
+      "sha256": "42a2dd5452990c94a51036cfb5eb9574899beccb5ce8f83f75995f7ac5e0e1ca",
+      "size": 364536,
+      "answer": {
+        "packageName": "grep",
+        "namespace": "wasmer",
+        "versions": [
+          {
+            "version": "3.12.0",
+            "isArchived": false,
+            "v2": {
+              "piritaDownloadUrl": null,
+              "piritaSha256Hash": null,
+              "webcManifest": null,
+              "webcSize": null
+            },
+            "v3": {
+              "piritaDownloadUrl": "https://cdn.wasmer.io/webcimages/42a2dd5452990c94a51036cfb5eb9574899beccb5ce8f83f75995f7ac5e0e1ca.webc",
+              "piritaSha256Hash": "42a2dd5452990c94a51036cfb5eb9574899beccb5ce8f83f75995f7ac5e0e1ca",
+              "webcManifest": "{\"atoms\":{\"grep\":{\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:KIv0I1QbvhPmV/RckQHObfSJoEex2sI5Dvjk9FR0AmA=\"}},\"commands\":{\"grep\":{\"annotations\":{\"atom\":{\"name\":\"grep\"},\"wasi\":{\"atom\":\"grep\"}},\"runner\":\"https://webc.org/runner/wasi\"}},\"entrypoint\":\"grep\",\"package\":{\"wapm\":{}}}",
+              "webcSize": 364536
+            }
+          }
+        ]
+      }
+    },
+    "wasmer/less": {
+      "version": "685.0.1",
+      "url": "https://cdn.wasmer.io/webcimages/6a4d00fa1bc7cedd8f7561d0c539c999c778bf1708a3e3912e616b23a2aefc98.webc",
+      "sha256": "6a4d00fa1bc7cedd8f7561d0c539c999c778bf1708a3e3912e616b23a2aefc98",
+      "size": 466802,
+      "answer": {
+        "packageName": "less",
+        "namespace": "wasmer",
+        "versions": [
+          {
+            "version": "685.0.1",
+            "isArchived": false,
+            "v2": {
+              "piritaDownloadUrl": null,
+              "piritaSha256Hash": null,
+              "webcManifest": null,
+              "webcSize": null
+            },
+            "v3": {
+              "piritaDownloadUrl": "https://cdn.wasmer.io/webcimages/6a4d00fa1bc7cedd8f7561d0c539c999c778bf1708a3e3912e616b23a2aefc98.webc",
+              "piritaSha256Hash": "6a4d00fa1bc7cedd8f7561d0c539c999c778bf1708a3e3912e616b23a2aefc98",
+              "webcManifest": "{\"atoms\":{\"less\":{\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:NfSXdYawwDMCwUZHsWcrx6A5sE487IFeuMRjYhsiXoA=\"}},\"commands\":{\"less\":{\"annotations\":{\"atom\":{\"name\":\"less\"},\"wasi\":{\"atom\":\"less\"}},\"runner\":\"https://webc.org/runner/wasi\"}},\"entrypoint\":\"less\",\"package\":{\"wapm\":{}}}",
+              "webcSize": 466802
+            }
+          }
+        ]
+      }
+    },
+    "wasmer/nano": {
+      "version": "8.7.1",
+      "url": "https://cdn.wasmer.io/webcimages/a374e0462aeeb1b9c8df64f9a728e79b04f2181e5f741d5e3ec3512dedaf9053.webc",
+      "sha256": "a374e0462aeeb1b9c8df64f9a728e79b04f2181e5f741d5e3ec3512dedaf9053",
+      "size": 778654,
+      "answer": {
+        "packageName": "nano",
+        "namespace": "wasmer",
+        "versions": [
+          {
+            "version": "8.7.1",
+            "isArchived": false,
+            "v2": {
+              "piritaDownloadUrl": null,
+              "piritaSha256Hash": null,
+              "webcManifest": null,
+              "webcSize": null
+            },
+            "v3": {
+              "piritaDownloadUrl": "https://cdn.wasmer.io/webcimages/a374e0462aeeb1b9c8df64f9a728e79b04f2181e5f741d5e3ec3512dedaf9053.webc",
+              "piritaSha256Hash": "a374e0462aeeb1b9c8df64f9a728e79b04f2181e5f741d5e3ec3512dedaf9053",
+              "webcManifest": "{\"atoms\":{\"nano\":{\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:gVLcF6gEqCdy9ghBUNcI8H4Uq7+ShZi9N84+v6Zu8g0=\"}},\"commands\":{\"nano\":{\"annotations\":{\"atom\":{\"name\":\"nano\"},\"wasi\":{\"atom\":\"nano\"}},\"runner\":\"https://webc.org/runner/wasi\"}},\"entrypoint\":\"nano\",\"package\":{\"wapm\":{}}}",
+              "webcSize": 778654
+            }
+          }
+        ]
+      }
+    },
+    "wasmer/sed": {
+      "version": "4.9.0",
+      "url": "https://cdn.wasmer.io/webcimages/3fc12256be87f6b8b7810d68d642359a6220f63b39a2ea6ef7a2bb6d79ec1393.webc",
+      "sha256": "3fc12256be87f6b8b7810d68d642359a6220f63b39a2ea6ef7a2bb6d79ec1393",
+      "size": 262523,
+      "answer": {
+        "packageName": "sed",
+        "namespace": "wasmer",
+        "versions": [
+          {
+            "version": "4.9.0",
+            "isArchived": false,
+            "v2": {
+              "piritaDownloadUrl": null,
+              "piritaSha256Hash": null,
+              "webcManifest": null,
+              "webcSize": null
+            },
+            "v3": {
+              "piritaDownloadUrl": "https://cdn.wasmer.io/webcimages/3fc12256be87f6b8b7810d68d642359a6220f63b39a2ea6ef7a2bb6d79ec1393.webc",
+              "piritaSha256Hash": "3fc12256be87f6b8b7810d68d642359a6220f63b39a2ea6ef7a2bb6d79ec1393",
+              "webcManifest": "{\"atoms\":{\"sed\":{\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:GxkF6SUph1mROct6BLBOhGRyQ4tYIaV+6gyaFf0BicE=\"}},\"commands\":{\"sed\":{\"annotations\":{\"atom\":{\"name\":\"sed\"},\"wasi\":{\"atom\":\"sed\"}},\"runner\":\"https://webc.org/runner/wasi\"}},\"entrypoint\":\"sed\",\"package\":{\"wapm\":{}}}",
+              "webcSize": 262523
+            }
+          }
+        ]
+      }
+    },
+    "wasmer/static-web-server": {
+      "version": "2.44.0",
+      "url": "https://cdn.wasmer.io/webcimages/1e84109da307837d8160d23a77c36403ab44f7ec0c592b1cfe4a5bd79c968e08.webc",
+      "sha256": "1e84109da307837d8160d23a77c36403ab44f7ec0c592b1cfe4a5bd79c968e08",
+      "size": 4755156,
+      "answer": {
+        "packageName": "static-web-server",
+        "namespace": "wasmer",
+        "versions": [
+          {
+            "version": "2.44.0",
+            "isArchived": false,
+            "v2": {
+              "piritaDownloadUrl": null,
+              "piritaSha256Hash": null,
+              "webcManifest": null,
+              "webcSize": null
+            },
+            "v3": {
+              "piritaDownloadUrl": "https://cdn.wasmer.io/webcimages/1e84109da307837d8160d23a77c36403ab44f7ec0c592b1cfe4a5bd79c968e08.webc",
+              "piritaSha256Hash": "1e84109da307837d8160d23a77c36403ab44f7ec0c592b1cfe4a5bd79c968e08",
+              "webcManifest": "{\"atoms\":{\"webserver\":{\"annotations\":{\"wasm\":{\"features\":[\"simd\",\"bulk-memory\",\"reference-types\",\"multi-value\",\"threads\",\"exception-handling\",\"multi-memory\"]}},\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:gvKk5L36IlEh5N3fjAmyGPp2GAKiZGVWjnsKwEXj2/Q=\"}},\"commands\":{\"static-web-server\":{\"annotations\":{\"atom\":{\"name\":\"webserver\"},\"wasi\":{\"atom\":\"webserver\"}},\"runner\":\"https://webc.org/runner/wasi\"},\"webserver\":{\"annotations\":{\"atom\":{\"name\":\"webserver\"},\"wasi\":{\"atom\":\"webserver\"}},\"runner\":\"https://webc.org/runner/wasi\"}},\"entrypoint\":\"webserver\",\"package\":{\"wapm\":{\"readme\":{\"path\":\"/README.md\",\"volume\":\"metadata\"}}}}",
+              "webcSize": 4755156
+            }
+          }
+        ]
+      }
+    },
+    "wasmer/tar": {
+      "version": "1.35.0",
+      "url": "https://cdn.wasmer.io/webcimages/8e53221cd089dfd90e95ed96d2604db01d8d5fba9a9bda1752db27a4b65f5cc7.webc",
+      "sha256": "8e53221cd089dfd90e95ed96d2604db01d8d5fba9a9bda1752db27a4b65f5cc7",
+      "size": 771738,
+      "answer": {
+        "packageName": "tar",
+        "namespace": "wasmer",
+        "versions": [
+          {
+            "version": "1.35.0",
+            "isArchived": false,
+            "v2": {
+              "piritaDownloadUrl": null,
+              "piritaSha256Hash": null,
+              "webcManifest": null,
+              "webcSize": null
+            },
+            "v3": {
+              "piritaDownloadUrl": "https://cdn.wasmer.io/webcimages/8e53221cd089dfd90e95ed96d2604db01d8d5fba9a9bda1752db27a4b65f5cc7.webc",
+              "piritaSha256Hash": "8e53221cd089dfd90e95ed96d2604db01d8d5fba9a9bda1752db27a4b65f5cc7",
+              "webcManifest": "{\"atoms\":{\"tar\":{\"kind\":\"https://webc.org/kind/wasm\",\"signature\":\"sha256:y32sUMvv0v2t6myQQkkF0Mj12saOm1G41+CVfW1AeAc=\"}},\"commands\":{\"tar\":{\"annotations\":{\"atom\":{\"name\":\"tar\"},\"wasi\":{\"atom\":\"tar\"}},\"runner\":\"https://webc.org/runner/wasi\"}},\"entrypoint\":\"tar\",\"package\":{\"wapm\":{}}}",
+              "webcSize": 771738
+            }
+          }
+        ]
+      }
+    }
+  }
+}

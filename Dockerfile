@@ -11,7 +11,8 @@
 # HTTPS.
 
 # The build. The toolchains `npm run build` downloads (pinned and checksummed:
-# Rust, a JDK for Java, NuGet packages for C#) are cached between builds.
+# Rust, a JDK for Java, NuGet packages for C#, the Wasmer packages) are cached
+# between builds.
 FROM node:22-bookworm-slim AS build
 WORKDIR /opcode
 # Stop if a toolchain can't be downloaded, rather than build without it.
@@ -21,6 +22,7 @@ RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 COPY . .
 RUN --mount=type=cache,target=/opcode/node_modules/.cache \
     --mount=type=cache,target=/opcode/public/toolchains/rust \
+    --mount=type=cache,target=/opcode/public/wasmer \
     npm run build \
  && node scripts/preview-host.mjs \
  && node scripts/precompress.mjs dist dist-compressed

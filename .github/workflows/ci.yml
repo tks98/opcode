@@ -31,6 +31,11 @@ jobs:
             node_modules/.cache/opcode-java
             node_modules/.cache/opcode-csharp
           key: toolchains-${{ hashFiles('scripts/fetch-java.mjs', 'scripts/fetch-csharp.mjs') }}
+      - uses: actions/cache@v4
+        with:
+          # The Wasmer packages the terminals run (scripts/wasmer-packages.mjs, ~255 MB).
+          path: public/wasmer
+          key: wasmer-packages-${{ hashFiles('wasmer-packages.lock.json') }}
       - run: npm run check
       - run: npm test
       - run: npm run build
@@ -55,6 +60,11 @@ jobs:
             node_modules/.cache/opcode-java
             node_modules/.cache/opcode-csharp
           key: toolchains-${{ hashFiles('scripts/fetch-java.mjs', 'scripts/fetch-csharp.mjs') }}
+      - uses: actions/cache@v4
+        with:
+          # The Wasmer packages the terminals run (scripts/wasmer-packages.mjs, ~255 MB).
+          path: public/wasmer
+          key: wasmer-packages-${{ hashFiles('wasmer-packages.lock.json') }}
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4

@@ -7,7 +7,7 @@
   <img alt="How Opcode works: everything that runs code is in the browser" src="images/architecture-light.svg">
 </picture>
 
-Everything that runs code runs in the browser. The network only provides files (the app, toolchains and machine snapshots, and packages from the Wasmer registry) and, if set up, an internet relay and the web preview host ([Deploying](deploying.md)). The diagram is drawn by `docs/images/architecture.mjs`.
+Everything that runs code runs in the browser. The network only provides files (the app, toolchains, machine snapshots and the terminals' Wasmer packages, all from Opcode's own site) and, if set up, an internet relay and the web preview host ([Deploying](deploying.md)). The diagram is drawn by `docs/images/architecture.mjs`.
 
 ## Inside a project
 
@@ -27,6 +27,7 @@ Everything that runs code runs in the browser. The network only provides files (
 ```
 
 - **Runtime**: [`@wasmer/sdk`](https://www.npmjs.com/package/@wasmer/sdk) runs WASIX packages from the Wasmer registry in Web Workers (`src/lib/runtime/ProjectSandbox.svelte.js`). Package versions are pinned in `src/lib/languages.js`.
+- **Wasmer packages from Opcode's own site**: the SDK asks Wasmer's registry which version of a package (and of each package it depends on) to use, then downloads it from Wasmer's CDN. `src/lib/runtime/wasmerMirror.js` answers both requests from the site instead: `scripts/wasmer-packages.mjs` locks every package and dependency to one version and checksum in `wasmer-packages.lock.json`, and downloads them into `public/wasmer/` when the site is built. So the terminals keep working while wasmer.io is down, and a new release on Wasmer's side doesn't change what Opcode runs. `npm run lock:wasmer` updates the lock after changing `languages.js`.
 - **Shell integration**: the shell's prompt emits OSC 133/7 escape sequences (like VS Code's terminal), so Opcode knows when a command starts and finishes and what the current directory is (`src/lib/runtime/shell.js`).
 - **Ctrl+C**: under WASIX the terminal's SIGINT stops only some programs. Ctrl+C sends it first, so REPLs such as `python3` show `KeyboardInterrupt` and keep running, as natively. If the program ignores it, a watchdog started alongside each command (from `PS0`) kills the command's processes. In a loop, the stopped program fails and the shell's ERR trap signals bash itself (safe then, since bash isn't waiting for a process), so bash abandons the rest of the line as it does natively and keeps its variables. A small `stty` (`toolchains/stty`, built for WASIX's `tty_set`) restores echo if the stopped program had turned it off. Restarting the shell is left as a last resort. **Stop** kills right away.
 - **No DEBUG trap**: commands are tracked from `PS0`, which bash expands once per command line. Under WASIX a DEBUG trap costs about 1 ms per command (loops ran ten times slower) and can crash bash.

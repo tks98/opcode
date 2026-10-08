@@ -21,6 +21,7 @@ Then open http://localhost:5173. Node.js 20 or later.
 | `npm run preview-host` / `npm run build:preview-host` | Serve the web preview host locally on port 5174, or build it into `dist-preview-host/` (see [Deploying](deploying.md#web-preview-host)) |
 | `npm run build:go` | Rebuild `public/toolchains/go.wasm.gz` (needs Go 1.22+) |
 | `npm run fetch:rust` | Download the Rust toolchain again (`dev` and `build` fetch it when missing) |
+| `npm run lock:wasmer` | Lock the Wasmer packages `src/lib/languages.js` names, and their dependencies, in `wasmer-packages.lock.json` (after changing a version there); `dev` and `build` download what it lists into `public/wasmer/` |
 | `npm run fetch:java` | Rebuild Java's runtime files from the pinned JDK (`dev` and `build` do it when missing) |
 | `npm run build:ristretto` | Rebuild the `java` command (Ristretto for WASI; needs rustup) |
 | `npm run build:stty`, `build:opcode-wait`, `build:sqlite`, `build:lua`, `build:csharp-runner` | Rebuild those commands from `toolchains/` (each needs its own tools; see the folder) |
@@ -77,6 +78,7 @@ src/
     │   ├── tsc.js / tsc.worker.js / tscRunner.js  # TypeScript's tsc in the browser
     │   ├── r.js / rlang.js     # R on webR
     │   ├── wasmer.js           # Wasmer client
+    │   ├── wasmerMirror.js     # Serves the locked Wasmer packages from the site instead of wasmer.io
     │   └── appleMobile.js / wasmerWorker.apple.js  # iPhone and iPad: memory caps and the SDK worker wrapper
     ├── linux/                  # Linux and Docker machines: LinuxMachine (v86), saved snapshots, preview bridge
     └── components/             # StartScreen, TopBar, ProjectSwitcher, Sidebar, Editor, Terminal, KeyBar, …
@@ -90,6 +92,7 @@ toolchains/java/                # Java: the Ristretto patch and build, class fil
 toolchains/linux/               # Builds the Alpine images (Linux, Docker) and their booted snapshots
 public/                         # Static files: go.wasm.gz, Linux and Docker snapshots, config.js, _headers, coi-serviceworker.js
 scripts/fetch-rust.mjs          # Downloads the Rust toolchain (pinned, checksummed)
+scripts/wasmer-packages.mjs     # Locks and downloads the Wasmer packages (wasmer-packages.lock.json)
 scripts/fetch-java.mjs          # Builds Java's runtime files from a pinned Corretto JDK
 scripts/fetch-csharp.mjs        # Builds the C# toolchain from pinned NuGet packages
 scripts/copy-npm-toolchains.mjs # Copies Ruby, TypeScript and webR (R) from their pinned npm packages

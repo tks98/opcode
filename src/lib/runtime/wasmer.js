@@ -3,6 +3,7 @@
 
 import { APPLE_MOBILE_RUNTIME_PAGES, capSharedMemories, isAppleMobile } from './appleMobile.js'
 import appleWorkerUrl from './wasmerWorker.apple.js?worker&url'
+import { installWasmerMirror } from './wasmerMirror.js'
 
 let clientPromise = null
 
@@ -51,6 +52,7 @@ export function getWasmer() {
       const problem = environmentProblem()
       if (problem) throw new EnvironmentError(problem)
       installAppleMobileWorkarounds()
+      installWasmerMirror()
       const { Wasmer } = await importSdk()
       const client = new Wasmer()
       await client.ready()

@@ -46,6 +46,7 @@ Cross-Origin-Embedder-Policy: require-corp
 ```
 
 - **Rust**: `npm run build` first downloads the Rust toolchain (`scripts/fetch-rust.mjs`: a pinned, checksummed release of [`oligamiq/rust_wasm`](https://github.com/oligamiq/rust_wasm), MIT OR Apache-2.0) into `public/toolchains/rust/` (not in git). It needs network access once; set up a cache of that folder for CI.
+- **Wasmer packages**: `npm run build` downloads the terminals' programs (bash and its tools, Python, Node.js, PHP and the web server, about 255 MB) at the versions in `wasmer-packages.lock.json` into `public/wasmer/` (not in git), so the site serves them itself instead of relying on wasmer.io. CI caches them.
 - **Java**: `npm run build` also builds Java's class library files (`scripts/fetch-java.mjs`) from a pinned, checksummed Amazon Corretto 21 JDK, downloaded once into `node_modules/.cache/opcode-java/` (about 210 MB; CI caches it).
 - **Netlify**: `public/_headers` is included. (Cloudflare Pages reads it too, but can't serve Opcode's largest files; see the end of this page.)
 - **Vercel**: `vercel.json` is included.
@@ -84,4 +85,4 @@ To host your own, run `npm run build:preview-host` and deploy `dist-preview-host
 
 `npm run preview-host` serves the host locally on port 5174, on `localhost` and every `*.localhost` subdomain, which Chrome resolves without DNS setup: `VITE_PREVIEW_HOST='http://*.localhost:5174/' npm run dev` gives per-server addresses in development (the Playwright tests use that).
 
-Some files in the build are large: `llvm.core.wasm` (~76 MB), `linux-docker/opcode-docker.state.*` (three parts of up to 45 MB), `linux/opcode-linux.state` (~42 MB), `llvm-resources.tar` (~30 MB), `toolchains/rust/rustc.wasm.gz` (~30 MB) and `toolchains/rust/sysroot.tar.gz` (~27 MB). Hosts with a per-file size limit (Cloudflare Pages allows 25 MiB) can't serve them. Netlify, Vercel, GitHub Pages or your own server work. Enable compression for `.wasm` files.
+The build is about 700 MB. Some files in it are large: `wasmer/*.webc` (PHP ~86 MB, Node.js ~78 MB, Python ~62 MB), `llvm.core.wasm` (~76 MB), `linux-docker/opcode-docker.state.*` (three parts of up to 45 MB), `linux/opcode-linux.state` (~42 MB), `llvm-resources.tar` (~30 MB), `toolchains/rust/rustc.wasm.gz` (~30 MB) and `toolchains/rust/sysroot.tar.gz` (~27 MB). Hosts with a per-file size limit (Cloudflare Pages allows 25 MiB) can't serve them. Netlify, Vercel, GitHub Pages or your own server work. Enable compression for `.wasm` files.

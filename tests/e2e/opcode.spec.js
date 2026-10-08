@@ -116,6 +116,23 @@ test('runs Python interactively and syncs files both ways', async ({ page }) => 
   await expect(term.rows).toContainText('still-42')
 })
 
+test('runs the terminal and Python without Wasmer, from the packages the site serves', async ({ page, context }) => {
+  const wasmer = []
+  await context.route(/wasmer\.io/, (route) => {
+    wasmer.push(route.request().url())
+    return route.abort()
+  })
+  await startProject(page)
+  const term = terminal(page)
+  await expect(term.rows).toContainText('student@opcode:~$', { timeout: 120_000 })
+  await term.type('ls / | wc -l')
+  await page.getByRole('button', { name: 'Run', exact: true }).click()
+  await expect(term.rows).toContainText("What's your name?", { timeout: 180_000 })
+  await term.type('Ada')
+  await expect(term.rows).toContainText('Hello, Ada!')
+  expect(wasmer).toEqual([])
+})
+
 test('compiles and runs C++ from a new project', async ({ page }) => {
   await startProject(page, 'C++')
 

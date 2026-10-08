@@ -20,3 +20,4 @@ public/toolchains/ruby.wasm.gz
 public/toolchains/typescript
 public/toolchains/webr
 public/toolchains/*.version
+public/wasmer

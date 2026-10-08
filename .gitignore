@@ -42,3 +42,5 @@ public/toolchains/ruby.wasm.gz
 public/toolchains/typescript/
 public/toolchains/webr/
 public/toolchains/*.version
+# Downloaded by scripts/wasmer-packages.mjs (wasmer-packages.lock.json)
+public/wasmer/

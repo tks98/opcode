@@ -42,9 +42,26 @@ The compilers and interpreters Opcode serves from `public/toolchains/`, committe
 
 The machine snapshots in `public/linux/` and `public/linux-docker/` contain Alpine Linux, the Linux kernel, GNU tools, Docker Engine and container images, under licenses including the GPL. Their `README.md` files list them and where their source code is, and `toolchains/linux/` shows how they are built.
 
-## Downloaded from Wasmer, not served by Opcode
+## Wasmer packages
 
-Browsers download these directly from the Wasmer registry (https://wasmer.io) when they are first used; they are under their own licenses: the terminal's tools (bash, coreutils and others), Python, Node.js (Edge.js), PHP and static-web-server. By default the web preview also runs through Wasmer's preview host.
+The terminals' programs below are WASIX builds published by Wasmer on its registry (https://wasmer.io). Opcode serves copies of them from `public/wasmer/`, downloaded at build time by `scripts/wasmer-packages.mjs` at the versions and checksums in `wasmer-packages.lock.json`:
+
+| Package | License | Source |
+| --- | --- | --- |
+| `wasmer/bash` 1.0.25: GNU Bash | GPL-3.0-or-later | https://github.com/wasix-org/bash |
+| `wasmer/coreutils` 1.0.27: uutils coreutils | MIT | https://github.com/wasix-org/coreutils |
+| `wasmer/findutils` 0.10.1: uutils findutils | MIT | https://github.com/wasix-org/findutils |
+| `wasmer/grep` 3.12.0: GNU grep | GPL-3.0-or-later | https://www.gnu.org/software/grep/ |
+| `wasmer/sed` 4.9.0: GNU sed | GPL-3.0-or-later | https://www.gnu.org/software/sed/ |
+| `wasmer/tar` 1.35.0: GNU tar | GPL-3.0-or-later | https://www.gnu.org/software/tar/ |
+| `wasmer/nano` 8.7.1: GNU nano | GPL-3.0-or-later | https://www.nano-editor.org |
+| `wasmer/less` 685.0.1: less | GPL-3.0-or-later, or the Less License | https://www.greenwoodsoftware.com/less/ |
+| `python/python` 3.13.20: CPython | PSF-2.0 | https://github.com/wasix-org/cpython |
+| `wasmer/edgejs` 0.2.5: Edge.js (Node.js's API) | MIT; Node.js: MIT | https://github.com/wasmerio/edgejs |
+| `php/php` 8.3.403: PHP | PHP-3.01 | https://github.com/wasix-org/php |
+| `wasmer/static-web-server` 2.44.0 | MIT OR Apache-2.0 | https://github.com/wasix-org/static-web-server |
+
+The web preview's host page and service worker come from the Wasmer SDK (`dist-preview-host/`, served by Opcode's own preview host).
 
 ## Lua
 

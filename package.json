@@ -10,9 +10,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "predev": "node scripts/fetch-rust.mjs && node scripts/fetch-java.mjs && node scripts/fetch-csharp.mjs && node scripts/copy-npm-toolchains.mjs",
+    "predev": "node scripts/fetch-rust.mjs && node scripts/fetch-java.mjs && node scripts/fetch-csharp.mjs && node scripts/copy-npm-toolchains.mjs && node scripts/wasmer-packages.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/fetch-rust.mjs && node scripts/fetch-java.mjs && node scripts/fetch-csharp.mjs && node scripts/copy-npm-toolchains.mjs",
+    "prebuild": "node scripts/fetch-rust.mjs && node scripts/fetch-java.mjs && node scripts/fetch-csharp.mjs && node scripts/copy-npm-toolchains.mjs && node scripts/wasmer-packages.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "start": "node scripts/server.mjs",
@@ -31,6 +31,7 @@
     "build:linux": "sudo toolchains/linux/build.sh && node toolchains/linux/make-state.mjs",
     "build:docker": "sudo toolchains/linux/build.sh docker && node toolchains/linux/make-state.mjs docker",
     "build:preview-host": "node scripts/preview-host.mjs",
+    "lock:wasmer": "node scripts/wasmer-packages.mjs --lock",
     "fetch:rust": "node scripts/fetch-rust.mjs --force",
     "fetch:java": "node scripts/fetch-java.mjs --force",
     "build:ristretto": "toolchains/java/build-ristretto.sh"
