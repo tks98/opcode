@@ -98,8 +98,15 @@ test('downloads a machine and opens it from a file and from a link', async ({ pa
   // So does a link to the file.
   await page.route('**/shared/lab.opcode-linux', (route) => route.fulfill({ path: file, contentType: 'application/octet-stream' }))
   await page.goto('/?machine=shared/lab.opcode-linux')
-  await expectProjects(page, 'Lab Template', 3)
+  // It asks first, and does nothing if the answer is no.
+  const ask = page.getByRole('alertdialog')
+  await expect(ask).toContainText('Open a shared machine from localhost:4173?')
   await expect(page).not.toHaveURL(/machine=/)
+  await ask.getByRole('button', { name: 'Cancel' }).click()
+  await expectProjects(page, 'Lab Template', 2)
+  await page.goto('/?machine=shared/lab.opcode-linux')
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Open' }).click()
+  await expectProjects(page, 'Lab Template', 3)
   await expect(page.locator('.linux-workspace .status')).toContainText('Running', { timeout: 60_000 })
   await term.type('cat lab/README')
   await expect(term.rows).toContainText('prepared by the teacher')

@@ -128,10 +128,19 @@ async function evaluate(webR, code, { halt, file = '' }) {
   }
 }
 
+// The webR Opcode ships is patched so R can't run JavaScript (see
+// scripts/copy-npm-toolchains.mjs). Check before running anything, so a copy
+// from before the patch (or a webR that changed) fails safe.
+const NO_JS_CHECK = 'tryCatch({ webr::eval_js("0"); "unpatched" }, error = function(e) if (identical(conditionMessage(e), "eval_js is not available in Opcode")) "patched" else "unpatched")'
+
 export function createR(WebR, baseUrl) {
   async function start() {
     const webR = new WebR({ baseUrl, interactive: false })
     await webR.init()
+    if ((await webR.evalRString(NO_JS_CHECK)) !== 'patched') {
+      webR.close()
+      throw new Error('this copy of webR lets R run JavaScript: run node scripts/copy-npm-toolchains.mjs --force')
+    }
     await webR.evalRVoid(SETUP)
     return webR
   }

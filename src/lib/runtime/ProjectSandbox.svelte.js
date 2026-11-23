@@ -12,14 +12,13 @@ import { isTscInput, isTscReady, prepareTsc, runTsc } from './tsc.js'
 import { isRReady, prepareR } from './r.js'
 import { R_VERSION, parseRscriptArgs } from './rlang.js'
 import { mapCompilerArgs, prettifyOutput, COMPILER_SUPPORT_FILES } from './compilerArgs.js'
-import { planPush, planPull, applyPushToBaseline, applyPullToBaseline, emptyBaseline, decodeText, impliedDirs } from './workspaceSync.js'
-import { BASHRC, SANDBOX_ENV, SHELL_ARGS, HOST_DIR, HISTORY_FILE, HISTORY_PATH, TOOLS_PATH, TOOLS_SCRIPT } from './shell.js'
+import { SYNC_LIMITS, planPush, planPull, planScan, applyPushToBaseline, applyPullToBaseline, emptyBaseline, decodeText, impliedDirs } from './workspaceSync.js'
+import { BASHRC, SANDBOX_ENV, SHELL_ARGS, HOST_DIR, HISTORY_FILE, HISTORY_PATH, TOOLS_PATH, TOOLS_SCRIPT, limitHistory } from './shell.js'
 import { RUNTIME_FAILURE, Shell } from './Shell.svelte.js'
 import { networkSettings, relayDnsUrl } from '../stores/network.svelte.js'
 import { TOOLCHAINS, runPlanFor, shellQuote, toolchainsForFiles } from '../languages.js'
 import { INTERNAL_DIR, WORKSPACE_ROOT, basename, dirname, fromWorkspacePath, isIgnoredPath, toWorkspacePath } from '../paths.js'
 
-const MAX_SYNC_BYTES = 1024 * 1024
 const MAX_COMPILER_INPUT_BYTES = 32 * 1024 * 1024
 const PUSH_DELAY_MS = 250
 const BUSY_PULL_MS = 2000
@@ -57,6 +56,7 @@ export class ProjectSandbox {
   #openFile
   #saveHistory
   #historySavedAt = 0
+  #toldSkipped = false // the notice about files left out of the editor
   #sandbox = null
   #shellPackage = null
   #nextShellId = 1
@@ -508,38 +508,57 @@ export class ProjectSandbox {
     applyPullToBaseline(this.#baseline, snapshot, plan, before)
     const binaries = plan.binaries.map(({ path, size }) => ({ path, size }))
     if (JSON.stringify(binaries) !== JSON.stringify(this.binaries)) this.binaries = binaries
+    if (snapshot.skipped && !this.#toldSkipped) {
+      this.#toldSkipped = true
+      this.activeShell?.notice(style.yellow(`Some files in ~ aren't shown in the editor: too many or too large in all (over ${SYNC_LIMITS.files.toLocaleString('en-US')} files or ${SYNC_LIMITS.bytes / 1e6} MB), or with names a project can't use. They're still here in the terminal.`))
+    }
   }
 
   // Read /workspace. A quick scan re-reads only files whose size changed.
   // A folder or file that can't be read fails the scan: a snapshot missing
   // files would make the pull delete them from the editor. (One removed while
-  // scanning fails it too; the next sync reads it again.)
+  // scanning fails it too; the next sync reads it again.) Files past the
+  // limits, or with names the project can't hold, aren't read (see planScan).
   async #scan({ quick = false } = {}) {
     const fs = this.#sandbox.fs
-    const files = new Map()
-    const dirs = new Set()
+    const found = []
+    const foundDirs = []
     const walk = async (dir) => {
       const entries = await fs.readDir(toWorkspacePath(dir))
       for (const entry of entries) {
         const path = dir ? `${dir}/${entry.name}` : entry.name
         if (isIgnoredPath(path)) continue
         if (entry.kind === 'directory') {
-          dirs.add(path)
+          foundDirs.push(path)
           await walk(path)
-        } else if (entry.size > MAX_SYNC_BYTES) {
-          files.set(path, { size: entry.size, text: null })
         } else {
-          const known = this.#baseline.files.get(path)
-          if (quick && known !== undefined && byteLength(known) === entry.size) {
-            files.set(path, { size: entry.size, text: known })
-            continue
-          }
-          files.set(path, { size: entry.size, text: decodeText(await fs.readFile(toWorkspacePath(path))) })
+          found.push({ path, size: entry.size })
         }
       }
     }
     await walk('')
-    return { files, dirs }
+    const project = this.#getProject()
+    const known = {
+      files: new Set([...this.#baseline.files.keys(), ...(project?.files ?? []).map((file) => file.path)]),
+      dirs: new Set([...this.#baseline.dirs, ...(project?.folders ?? [])]),
+    }
+    const plan = planScan(found, foundDirs, known)
+    const files = new Map()
+    for (const { path, size } of found) {
+      if (plan.skipped.has(path)) {
+        files.set(path, { size, text: null, skipped: true })
+      } else if (plan.large.has(path)) {
+        files.set(path, { size, text: null })
+      } else {
+        const previous = this.#baseline.files.get(path)
+        if (quick && previous !== undefined && byteLength(previous) === size) {
+          files.set(path, { size, text: previous })
+          continue
+        }
+        files.set(path, { size, text: decodeText(await fs.readFile(toWorkspacePath(path))) })
+      }
+    }
+    return { files, dirs: plan.dirs, skipped: plan.skipped.size }
   }
 
   /** Delete a file the editor cannot show (e.g. a compiled program). */
@@ -606,7 +625,8 @@ export class ProjectSandbox {
     const [shellId, toolchainId, ...command] = raw.split('\0').slice(0, -1)
     const shell = this.#shellById(shellId)
     if (this.#hostRequests.has(id)) this.#hostRequests.set(id, shell?.id ?? null)
-    if (!TOOLCHAINS[toolchainId]) throw new Error(`unknown toolchain ${toolchainId}`)
+    // (Own keys only: the id comes from the sandbox, and could be "__proto__".)
+    if (!Object.hasOwn(TOOLCHAINS, toolchainId)) throw new Error(`unknown toolchain ${toolchainId}`)
     try {
       await this.ensureToolchain(toolchainId, { verbose: true, shell })
     } catch {
@@ -621,7 +641,10 @@ export class ProjectSandbox {
         const history = await this.#sandbox?.fs.readText(HISTORY_FILE).catch(() => '')
         const line = history?.trimEnd().split('\n').pop() ?? ''
         const simple = !/[;&|\n]/.test(line) && (line === command[0] || line.startsWith(`${command[0]} `))
-        return simple ? line : command.map(shellQuote).join(' ')
+        const typed = simple ? line : command.map(shellQuote).join(' ')
+        // Both come from the sandbox: never type control characters (they
+        // would act as keys, e.g. Enter or Ctrl+C).
+        return hasControlCharacters(typed) ? '' : typed
       })
       await this.#finishCompileRequest(id, 127, '')
     } else {
@@ -635,7 +658,7 @@ export class ProjectSandbox {
     if (!this.#sandbox || Date.now() - this.#historySavedAt < 2000) return
     this.#historySavedAt = Date.now()
     const text = await this.#sandbox.fs.readText(HISTORY_FILE).catch(() => null)
-    if (text) this.#saveHistory(text.split('\n').slice(-1000).join('\n'))
+    if (text) this.#saveHistory(limitHistory(text))
   }
 
   async #handleCompileRequest(id) {
@@ -883,7 +906,8 @@ export class ProjectSandbox {
       added = false
       const text = [...sources.values()].join('\n')
       for (const [path, name] of siblings) {
-        if (!new RegExp(`\\b${name}\\b`).test(text)) continue
+        // (The name comes from the sandbox: match it literally.)
+        if (!new RegExp(`\\b${escapeRegExp(name)}\\b`).test(text)) continue
         const content = await fs.readText(path).catch(() => null)
         siblings.delete(path)
         if (content !== null) {
@@ -974,10 +998,10 @@ export class ProjectSandbox {
         const path = dir ? `${dir}/${entry.name}` : entry.name
         if (isIgnoredPath(path)) continue
         if (entry.kind === 'directory') {
-          node[entry.name] = {}
-          await walk(path, node[entry.name])
+          const child = setOwn(node, entry.name, {})
+          await walk(path, child)
         } else if (total + entry.size <= MAX_COMPILER_INPUT_BYTES) {
-          node[entry.name] = await fs.readFile(toWorkspacePath(path))
+          setOwn(node, entry.name, await fs.readFile(toWorkspacePath(path)))
           total += entry.size
         }
       }
@@ -993,10 +1017,10 @@ export class ProjectSandbox {
       for (const [name, value] of Object.entries(node ?? {})) {
         const path = prefix ? `${prefix}/${name}` : name
         if (value instanceof Uint8Array) {
-          const old = before?.[name]
+          const old = before && Object.hasOwn(before, name) ? before[name] : undefined
           if (!(old instanceof Uint8Array) || !sameBytes(old, value)) writes.push([path, value])
         } else if (value && typeof value === 'object') {
-          collect(value, before?.[name], path)
+          collect(value, before && Object.hasOwn(before, name) ? before[name] : undefined, path)
         }
       }
     }
@@ -1015,6 +1039,16 @@ export class ProjectSandbox {
     }
   }
 }
+
+// A file or folder in a tree object, by name. Names come from the sandbox,
+// so "__proto__" must become an entry rather than the object's prototype.
+function setOwn(node, name, value) {
+  Object.defineProperty(node, name, { value, enumerable: true, writable: true, configurable: true })
+  return value
+}
+
+export const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+export const hasControlCharacters = (text) => /[\0-\x1f\x7f]/.test(text)
 
 function sameBytes(a, b) {
   if (a.length !== b.length) return false

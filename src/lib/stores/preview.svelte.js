@@ -23,8 +23,31 @@ export function previewHostFor(name, host = PREVIEW_HOST) {
   return host.replace('*', name)
 }
 
-// DNS-safe and hard to guess: a server's address works for whoever has it
-// while its tab is open.
+/**
+ * Why `host` can't be the preview host for a page at `pageOrigin`, or null.
+ * Previewed pages own the host's origin: on the app's own origin they could
+ * script the app itself.
+ */
+export function previewHostProblem(host = PREVIEW_HOST, pageOrigin = globalThis.location?.origin) {
+  let origin
+  try {
+    origin = new URL(previewHostFor('p0', host)).origin
+  } catch {
+    return `The web preview host "${host}" is not a valid address.`
+  }
+  if (pageOrigin && origin === pageOrigin) {
+    return `The web preview host (${host}) is this site's own address. Previewed pages would control the site, so the preview is off: set the preview host to a separate origin (see docs/deploying.md, "Web preview host").`
+  }
+  return null
+}
+
+// DNS-safe and hard to guess. A server's address works while its Opcode tab
+// is open, for pages whose browser storage partition holds the service
+// worker that routes it: in browsers that partition storage by top-level
+// site (Chrome, Safari, Firefox), pages of the app's own site, such as the
+// preview or Open in a new tab, but not other sites, which get the host's
+// "no server" page. The name keeps those pages from guessing a server's
+// address.
 function newServerName() {
   const bytes = crypto.getRandomValues(new Uint8Array(8))
   return `p${[...bytes].map((byte) => (byte % 36).toString(36)).join('')}`
@@ -164,6 +187,12 @@ class PreviewStore {
     const session = sessionStore.get(projectId) ?? linuxStore.get(projectId)
     if (!session) {
       this.status = 'stopped'
+      return
+    }
+    const problem = previewHostProblem()
+    if (problem) {
+      this.status = 'error'
+      this.error = problem
       return
     }
     // Before any wait: a show() of the same server meanwhile joins this one.

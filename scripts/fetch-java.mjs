@@ -17,7 +17,7 @@
 
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { pipeline } from 'node:stream/promises'
@@ -40,21 +40,32 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const out = join(root, 'public', 'toolchains', 'java')
 const cache = join(root, 'node_modules', '.cache', 'opcode-java')
 const stampFile = join(out, 'jdk.json')
-const stamp = JSON.stringify({ version: VERSION, sha256: SHA256, format: 1 })
+const inputs = { version: VERSION, sha256: SHA256, format: 1 }
 const OUTPUTS = ['jdk.tar.gz', 'javac-sdk.bin']
-
-function upToDate() {
-  try {
-    return readFileSync(stampFile, 'utf8') === stamp && OUTPUTS.every((file) => existsSync(join(out, file)))
-  } catch {
-    return false
-  }
-}
 
 async function sha256(file) {
   const hash = createHash('sha256')
   for await (const chunk of createReadStream(file)) hash.update(chunk)
   return hash.digest('hex')
+}
+
+// The stamp also records each output's checksum, so a file swapped in by a
+// build cache isn't taken as built from these inputs.
+async function upToDate() {
+  try {
+    const saved = JSON.parse(readFileSync(stampFile, 'utf8'))
+    if (JSON.stringify(saved.inputs) !== JSON.stringify(inputs)) return false
+    for (const file of OUTPUTS) if ((await sha256(join(out, file))) !== saved.outputs?.[file]) return false
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function writeStamp() {
+  const outputs = {}
+  for (const file of OUTPUTS) outputs[file] = await sha256(join(out, file))
+  writeFileSync(stampFile, JSON.stringify({ inputs, outputs }))
 }
 
 async function downloadJdk() {
@@ -118,11 +129,14 @@ function walk(dir) {
   })
 }
 
-if (!process.argv.includes('--force') && upToDate()) process.exit(0)
+if (!process.argv.includes('--force') && (await upToDate())) process.exit(0)
 
 try {
   const archive = await downloadJdk()
   const extracted = join(cache, 'extracted')
+  // Start empty: DATA's directories are packed whole, so anything left over
+  // from an earlier run (or a restored cache) would end up in jdk.tar.gz.
+  rmSync(extracted, { recursive: true, force: true })
   mkdirSync(extracted, { recursive: true })
   execFileSync('tar', ['-xzf', archive, '-C', extracted, ...[...DATA, 'jmods/java.base.jmod'].map((path) => `${TOP}/${path}`)])
   const home = join(extracted, TOP)
@@ -154,7 +168,7 @@ try {
   mkdirSync(out, { recursive: true })
   writeFileSync(join(out, 'jdk.tar.gz'), gzipSync(tar(entries), { level: 9 }))
   writeFileSync(join(out, 'javac-sdk.bin'), teavmArchive(sdk))
-  writeFileSync(stampFile, stamp)
+  await writeStamp()
   for (const file of OUTPUTS) console.log(`  ${file}: ${(statSync(join(out, file)).size / 1e6).toFixed(1)} MB`)
 } catch (error) {
   console.error(`\nCould not prepare Java: ${error.message}`)

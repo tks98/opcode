@@ -11,7 +11,7 @@
 // Usage: node scripts/fetch-rust.mjs [--force]
 
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { createReadStream, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { brotliDecompressSync, gzipSync } from 'node:zlib'
@@ -25,11 +25,22 @@ const FILES = [
 
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'toolchains', 'rust')
 const stampFile = join(out, 'release.json')
-const stamp = JSON.stringify({ release: RELEASE, files: FILES.map((file) => file.sha256) })
+const inputs = { release: RELEASE, files: FILES.map((file) => file.sha256) }
 
-function upToDate() {
+async function hashFile(file) {
+  const hash = createHash('sha256')
+  for await (const chunk of createReadStream(file)) hash.update(chunk)
+  return hash.digest('hex')
+}
+
+// The stamp also records each output's checksum, so a file swapped in by a
+// build cache isn't taken as the pinned release.
+async function upToDate() {
   try {
-    return readFileSync(stampFile, 'utf8') === stamp && FILES.every((file) => existsSync(join(out, file.output)))
+    const saved = JSON.parse(readFileSync(stampFile, 'utf8'))
+    if (JSON.stringify(saved.inputs) !== JSON.stringify(inputs)) return false
+    for (const file of FILES) if ((await hashFile(join(out, file.output))) !== saved.outputs?.[file.output]) return false
+    return true
   } catch {
     return false
   }
@@ -52,7 +63,7 @@ async function download(file) {
   throw new Error(`Could not download ${file.source}:\n  ${errors.join('\n  ')}`)
 }
 
-if (!process.argv.includes('--force') && upToDate()) process.exit(0)
+if (!process.argv.includes('--force') && (await upToDate())) process.exit(0)
 
 mkdirSync(out, { recursive: true })
 console.log(`Fetching the Rust toolchain (${RELEASE}, about 40 MB)…`)
@@ -67,7 +78,9 @@ try {
       console.log(`  ${file.output}: ${(bytes.length / 1e6).toFixed(1)} MB unpacked`)
     }),
   )
-  writeFileSync(stampFile, stamp)
+  const outputs = {}
+  for (const file of FILES) outputs[file.output] = await hashFile(join(out, file.output))
+  writeFileSync(stampFile, JSON.stringify({ inputs, outputs }))
 } catch (error) {
   console.error(`${error.message}\nRust projects won't work in this build until the download succeeds (rerun: node scripts/fetch-rust.mjs).`)
   process.exit(1)

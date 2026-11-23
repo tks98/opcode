@@ -15,12 +15,11 @@
   import { sessionStore } from './lib/stores/sessions.svelte.js'
   import { linuxStore } from './lib/stores/linux.svelte.js'
   import { pruneMachines } from './lib/linux/machineStorage.js'
-  import { MACHINE_FILE_EXTENSION } from './lib/linux/machineFile.js'
+  import { MACHINE_FILE_EXTENSION, sharedMachineName, sharedMachineUrl } from './lib/linux/machineFile.js'
   import { MACHINES, machineKindOf } from './lib/linux/machines.js'
-  import { downloadBytes } from './lib/runtime/toolchains.js'
+  import { readZip, zipContents } from './lib/runtime/toolchains.js'
   import { environmentProblem } from './lib/runtime/wasmer.js'
   import { decodeText } from './lib/runtime/workspaceSync.js'
-  import { isIgnoredPath } from './lib/paths.js'
   import { LANGUAGES, WEB_PORT, runPlanFor } from './lib/languages.js'
   import { EDITOR_THEMES } from './lib/editorThemes.js'
   import { themeStore } from './lib/stores/theme.svelte.js'
@@ -35,12 +34,17 @@
   import LinuxWorkspace from './lib/components/LinuxWorkspace.svelte'
   import Preview from './lib/components/Preview.svelte'
   import InternetSettings from './lib/components/InternetSettings.svelte'
+  import ConfirmDialog from './lib/components/ConfirmDialog.svelte'
+  import { isIgnoredPath } from './lib/paths.js'
   import { previewStore } from './lib/stores/preview.svelte.js'
   import { trackViewport, viewport } from './lib/stores/viewport.svelte.js'
 
   const MAX_UPLOAD_BYTES = 2 * 1024 * 1024
   const MAX_IMPORT_FILES = 2000
   const MAX_IMPORT_BYTES = 50 * 1000 * 1000
+  // JSZip reads a whole zip into memory. Big ones are mostly files the import
+  // skips anyway (binaries, node_modules), so allow some room over the 50 MB.
+  const MAX_ZIP_BYTES = 200 * 1000 * 1000
 
   const layout = readLayout()
   const narrowQuery = typeof matchMedia === 'undefined' ? null : matchMedia('(max-width: 760px)')
@@ -60,6 +64,8 @@
   let terminal = $state(null)
   let importInput = $state(null)
   let environmentIssue = $state(null)
+  // A ?machine= link waiting for the user to agree: { url, host }.
+  let sharedMachine = $state(null)
   // Where the last text input focus went: 'editor', 'terminal' or null.
   let typingIn = $state(null)
 
@@ -273,8 +279,11 @@
     if (!project) return
     const { default: JSZip } = await import('jszip')
     const zip = new JSZip()
-    for (const folder of project.folders) zip.folder(folder)
-    for (const file of project.files) zip.file(file.path, file.content)
+    // Programs can create files with any name; leave out those that could
+    // land outside the folder the zip is unpacked into.
+    const { files, folders, skipped } = zipContents(project)
+    for (const folder of folders) zip.folder(folder)
+    for (const file of files) zip.file(file.path, file.content)
     const blob = await zip.generateAsync({ type: 'blob' })
     const safeName = project.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'project'
     const url = URL.createObjectURL(blob)
@@ -283,7 +292,7 @@
     link.download = `${safeName}.zip`
     link.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
-    showNotice(`Exported "${project.name}" as ${safeName}.zip`)
+    showNotice(`Exported "${project.name}" as ${safeName}.zip${skipped ? ` (left out ${skipped} file${skipped === 1 ? '' : 's'} with names a zip can't hold safely)` : ''}`)
   }
 
   async function importFile(file) {
@@ -301,20 +310,30 @@
   }
 
   // A shared machine: ?machine=https://…/lab.opcode-linux opens it as a new
-  // project (the server must allow cross-origin requests).
-  async function openSharedMachine() {
+  // project (the server must allow cross-origin requests), once the user
+  // agrees: any page can link here, and the machine runs as soon as it opens.
+  function openSharedMachine() {
     const params = new URLSearchParams(location.search)
     const source = params.get('machine')
     if (!source) return
     params.delete('machine')
     history.replaceState(null, '', `${location.pathname}${params.size ? `?${params}` : ''}${location.hash}`)
+    const url = sharedMachineUrl(source, location.href)
+    if (!url) {
+      showNotice('Could not open the shared machine: the link is not a web address.', 'error')
+      return
+    }
+    sharedMachine = { url: url.href, host: url.host }
+  }
+
+  async function confirmSharedMachine() {
+    const { url } = sharedMachine
+    sharedMachine = null
     try {
-      const url = new URL(source, location.href).href
-      const bytes = await downloadBytes('shared machine', url, 40, (progress) => {
+      const blob = await linuxStore.downloadShared(url, (progress) => {
         if (progress?.phase === 'downloading') showNotice(`Downloading the shared machine… ${progress.percent == null ? '' : `${Math.floor(progress.percent)}%`}`)
       })
-      const fallback = decodeURIComponent(url.split('/').pop() || 'Shared machine').replace(/\.opcode-linux$/i, '')
-      await importMachine(new Blob([bytes]), fallback)
+      await importMachine(blob, sharedMachineName(url))
     } catch (error) {
       showNotice(`Could not open the shared machine: ${error.message}`, 'error')
     }
@@ -322,35 +341,21 @@
 
   async function importZip(file) {
     try {
+      if (file.size > MAX_ZIP_BYTES) throw new Error(`it is ${Math.round(file.size / 1e6)} MB; Opcode can import zips up to ${MAX_ZIP_BYTES / 1e6} MB`)
       const { default: JSZip } = await import('jszip')
       const zip = await JSZip.loadAsync(file)
-      // Sizes as the zip states them (JSZip keeps them in _data): a small zip
-      // can expand to gigabytes, and the whole workspace is saved as one record.
-      const sizeOf = (entry) => entry._data?.uncompressedSize ?? 0
-      let tooBig = 0
-      const entries = Object.values(zip.files).filter((entry) => {
-        if (entry.dir || isIgnoredPath(entry.name) || entry.name.startsWith('__MACOSX/')) return false
-        if (sizeOf(entry) > MAX_UPLOAD_BYTES) return (tooBig++, false)
-        return true
-      })
-      const total = entries.reduce((sum, entry) => sum + sizeOf(entry), 0)
-      if (entries.length > MAX_IMPORT_FILES || total > MAX_IMPORT_BYTES) {
-        throw new Error(`it has ${entries.length} files (${Math.round(total / 1e6)} MB); a project can import up to ${MAX_IMPORT_FILES} files and ${MAX_IMPORT_BYTES / 1e6} MB`)
-      }
-      // Drop a single wrapping folder (zips of a folder usually have one).
-      const roots = new Set(entries.map((e) => e.name.split('/')[0]))
-      const strip = roots.size === 1 && entries.every((e) => e.name.includes('/')) ? `${[...roots][0]}/` : ''
+      // Unpacked in pieces, to the real sizes (see readZip): a small zip can
+      // expand to gigabytes, and the whole workspace is saved as one record.
+      const { files: entries, tooBig } = await readZip(zip, { maxFiles: MAX_IMPORT_FILES, maxFileBytes: MAX_UPLOAD_BYTES, maxTotalBytes: MAX_IMPORT_BYTES })
       const files = []
-      let skipped = 0
-      for (const entry of entries) {
-        const bytes = await entry.async('uint8array')
-        const text = bytes.length > MAX_UPLOAD_BYTES ? null : decodeText(bytes)
+      let skipped = tooBig
+      for (const { path, bytes } of entries) {
+        const text = decodeText(bytes)
         if (text === null) skipped++
-        else files.push({ path: entry.name.slice(strip.length), content: text })
+        else files.push({ path, content: text })
       }
       const name = file.name.replace(/\.zip$/i, '') || 'Imported Project'
       projectStore.importProject(name, files)
-      skipped += tooBig
       showNotice(`Imported ${files.length} file${files.length === 1 ? '' : 's'}${skipped ? ` (skipped ${skipped} binary or large file${skipped === 1 ? '' : 's'})` : ''}`)
     } catch (error) {
       showNotice(`Could not import ${file.name}: ${error.message}`, 'error')
@@ -358,9 +363,18 @@
   }
 
   async function uploadFiles(fileList) {
+    // The same limits as importing a zip, which also leaves out folders the
+    // editor never shows (node_modules, .git): a folder that has them would
+    // otherwise always be over the limit.
+    const all = [...fileList].filter((file) => !isIgnoredPath(file.webkitRelativePath || file.name))
+    const total = all.reduce((sum, file) => sum + (file.size > MAX_UPLOAD_BYTES ? 0 : file.size), 0)
+    if (all.length > MAX_IMPORT_FILES || total > MAX_IMPORT_BYTES) {
+      showNotice(`Could not add ${all.length} files (${Math.round(total / 1e6)} MB): you can add up to ${MAX_IMPORT_FILES} files and ${MAX_IMPORT_BYTES / 1e6} MB at a time.`, 'error')
+      return
+    }
     const files = []
     let skipped = 0
-    for (const file of fileList) {
+    for (const file of all) {
       if (file.size > MAX_UPLOAD_BYTES) {
         skipped++
         continue
@@ -572,6 +586,17 @@
 
   {#if showInternet}
     <InternetSettings onClose={() => (showInternet = false)} />
+  {/if}
+
+  {#if sharedMachine}
+    <ConfirmDialog
+      title="Open a shared machine from {sharedMachine.host}?"
+      message="It's a saved Linux computer made by someone else; it starts running as soon as it opens. Open it only if you trust where the link came from."
+      detail={sharedMachine.url}
+      confirmLabel="Open"
+      onConfirm={confirmSharedMachine}
+      onCancel={() => (sharedMachine = null)}
+    />
   {/if}
 
   {#if notice}

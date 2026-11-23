@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:572cebbc2b15e6f84c077742952674889cb63cd5e9b80abdffcbe587b6f19183
 #
 # Opcode, ready to deploy: the app, its web preview host and an optional
 # internet relay, served by one small Node server (scripts/server.mjs).
@@ -13,7 +13,12 @@
 # The build. The toolchains `npm run build` downloads (pinned and checksummed:
 # Rust, a JDK for Java, NuGet packages for C#, the Wasmer packages) are cached
 # between builds.
-FROM node:22-bookworm-slim AS build
+#
+# The base images (and the syntax line above) are pinned by digest, so a
+# build uses exactly what was tested. To update one, take the digest from
+# `docker buildx imagetools inspect node:22-bookworm-slim` (or node:22-alpine,
+# docker/dockerfile:1).
+FROM node:22-bookworm-slim@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee AS build
 WORKDIR /opcode
 # Stop if a toolchain can't be downloaded, rather than build without it.
 ENV CI=1
@@ -28,7 +33,7 @@ RUN --mount=type=cache,target=/opcode/node_modules/.cache \
  && node scripts/precompress.mjs dist dist-compressed
 
 # What runs: Node, the server (whose relay needs the ws package) and the build.
-FROM node:22-alpine
+FROM node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a
 LABEL org.opencontainers.image.title="Opcode" \
       org.opencontainers.image.description="A browser IDE with a real terminal, running on WebAssembly" \
       org.opencontainers.image.source="https://github.com/tks98/opcode" \

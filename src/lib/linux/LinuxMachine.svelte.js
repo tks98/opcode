@@ -6,15 +6,16 @@
 // Implements the same terminal interface as ProjectSandbox (attach, detach,
 // input, resize), so TerminalView works with either.
 
-import { downloadBytes, formatBytes, gunzipIfNeeded } from '../runtime/toolchains.js'
+import { downloadBytes, formatBytes } from '../runtime/toolchains.js'
 import { deleteMachine, loadMachine, saveMachine } from './machineStorage.js'
-import { encodeMachineFile } from './machineFile.js'
+import { encodeMachineFile, unpackMachineState } from './machineFile.js'
 import { networkSettings, v86DohServer, v86RelayUrl } from '../stores/network.svelte.js'
 import { MACHINES, recordedKind } from './machines.js'
 import { exposeOnHost, fetchFromMachine } from './httpBridge.js'
 
 const AUTOSAVE_MS = 2 * 60 * 1000
 const SIGNAL_AFTER_ENTER_MS = 300 // see #pumpInput
+const MAX_AGENT_LINE = 4096 // the agent's messages are short (see #onAgentOutput)
 const BIOS = 'linux/seabios.bin'
 const VGA_BIOS = 'linux/vgabios.bin'
 
@@ -51,11 +52,6 @@ export function welcome({ internet = false, kind = 'linux' } = {}) {
 const FRESH_PROMPT = '\x1b[1;32mstudent@opcode\x1b[0m:\x1b[1;34m~\x1b[0m$ '
 
 const url = (path) => new URL(path, document.baseURI).href
-
-async function gunzip(bytes) {
-  const data = await gunzipIfNeeded(new Uint8Array(bytes))
-  return data.buffer.byteLength === data.byteLength ? data.buffer : data.slice().buffer
-}
 
 async function gzip(buffer) {
   const stream = new Blob([buffer]).stream().pipeThrough(new CompressionStream('gzip'))
@@ -144,6 +140,7 @@ export class LinuxMachine {
   #autosaveTimer = null
   #startPromise = null
   #saveChain = Promise.resolve()
+  #queuedSave = null
   #closed = false
   #hardware = 1 // see HARDWARE in toolchains/linux/make-state.mjs
   #onVisibility = () => {
@@ -273,12 +270,14 @@ export class LinuxMachine {
       let hardware
       if (compatible) {
         this.progress = { label: 'your saved machine', phase: 'loading', percent: null }
-        state = await gunzip(await saved.state.arrayBuffer())
+        state = await unpackMachineState(new Uint8Array(await saved.state.arrayBuffer()), this.#manifest.memoryMB).catch(() => {
+          throw new Error('Your saved machine is damaged. Reset machine erases it and starts a fresh one.')
+        })
         hardware = saved.hardware ?? 1
         this.savedAt = saved.savedAt
       } else {
         if (saved) this.#write(style.dim('Your saved machine was made by an older version of Opcode, so this is a fresh one.\r\n'))
-        state = await gunzip(await loadPristine(this.#kind, (progress) => (this.progress = progress)))
+        state = await unpackMachineState(await loadPristine(this.#kind, (progress) => (this.progress = progress)), this.#manifest.memoryMB)
         hardware = this.#manifest.hardware ?? 1
       }
       if (this.#closed) return
@@ -295,9 +294,10 @@ export class LinuxMachine {
   }
 
   // The emulated hardware must match the snapshot's (see make-state.mjs).
-  // Offline, v86's fetch adapter stands in for the relay, with its fetching
-  // turned off (see #createEmulator): it gives nothing internet access, but
-  // the preview can still open connections into the machine.
+  // Online, the relay (v86's wisp adapter) is the machine's only way out.
+  // Offline, v86's fetch adapter stands in for it, with its fetching turned
+  // off (see #createEmulator): it gives nothing internet access, but the
+  // preview can still open connections into the machine.
   #networkDevice(hardware) {
     if (hardware < 2) return undefined // v86's default NE2000 card
     const relay = networkSettings.relay
@@ -320,18 +320,25 @@ export class LinuxMachine {
         virtio_console: true,
         net_device: this.#networkDevice(hardware),
         preserve_mac_from_state_image: true,
-        autostart: true,
+        autostart: false, // started below, once its network is checked
         disable_speaker: true,
         disable_keyboard: true,
         disable_mouse: true,
       })
       const timeout = setTimeout(() => reject(new Error('The Linux machine did not start')), 60_000)
-      emulator.add_listener('emulator-started', () => {
-        clearTimeout(timeout)
-        // Offline: the fetch adapter must not fetch (see #networkDevice).
-        if (emulator.network_adapter?.fetch && !networkSettings.relay) {
+      // v86's fetch adapter would send the machine's web requests (to any
+      // host, port 80) from this page with fetch(). It exists once v86 has
+      // loaded, before the machine first runs: turn that off, then start
+      // it. Whatever the relay setting is by now (it may have changed while
+      // loading); the relay's own adapter has no fetch.
+      emulator.add_listener('emulator-loaded', () => {
+        if (typeof emulator.network_adapter?.fetch === 'function') {
           emulator.network_adapter.fetch = () => Promise.reject(new TypeError('This machine is offline.'))
         }
+        emulator.run()
+      })
+      emulator.add_listener('emulator-started', () => {
+        clearTimeout(timeout)
         resolve()
       })
       emulator.add_listener('virtio-console0-output-bytes', (bytes) => this.#write(bytes))
@@ -381,18 +388,29 @@ export class LinuxMachine {
     this.#emulator?.bus.send('virtio-console1-input-bytes', encoder.encode(`${line}\n`))
   }
 
+  // Anything in the machine can write to the agent's channel, so long lines
+  // are dropped and repeated requests coalesce (see save and #reboot).
   #onAgentOutput(bytes) {
     this.#agentBuffer += decoder.decode(bytes)
     let newline
     while ((newline = this.#agentBuffer.search(/\r?\n/)) !== -1) {
-      const line = this.#agentBuffer.slice(0, newline).trim()
+      const line = newline > MAX_AGENT_LINE ? '' : this.#agentBuffer.slice(0, newline).trim()
       this.#agentBuffer = this.#agentBuffer.slice(newline + 1).replace(/^\n/, '')
       if (line === 'ok time') this.#clockSynced = true
       else if (line === 'ports' || line.startsWith('ports ')) this.#setServers(line.slice(6))
-      else if (line === 'reboot') this.#bootFresh({ message: 'Rebooting…' }).catch((error) => this.#fail(error))
+      else if (line === 'reboot') this.#reboot()
       else if (line === 'poweroff') this.#powerOff()
       else if (line === 'save') this.save() // e.g. the tutorial after a lesson
     }
+    if (this.#agentBuffer.length > MAX_AGENT_LINE) this.#agentBuffer = ''
+  }
+
+  // Once, however many times it is asked while rebooting (each holds the
+  // whole machine's memory).
+  #reboot() {
+    this.#booting ??= this.#bootFresh({ message: 'Rebooting…' })
+      .catch((error) => this.#fail(error))
+      .finally(() => (this.#booting = null))
   }
 
   #setServers(list) {
@@ -416,7 +434,7 @@ export class LinuxMachine {
   async #bootFresh({ message } = {}) {
     if (!this.#emulator) return
     if (message) this.#write(`\r\n${style.dim(message)}\r\n`)
-    const state = await gunzip(await loadPristine(this.#kind, (progress) => (this.progress = progress)))
+    const state = await unpackMachineState(await loadPristine(this.#kind, (progress) => (this.progress = progress)), this.#manifest.memoryMB)
     this.progress = null
     const hardware = this.#manifest.hardware ?? 1
     if (hardware === this.#hardware) {
@@ -444,6 +462,12 @@ export class LinuxMachine {
 
   /** Throw away this machine and start a fresh one. */
   async reset() {
+    if (this.status === 'error') {
+      // It could not start (a damaged save, say): erase it and start fresh.
+      await deleteMachine(this.#projectId)
+      this.savedAt = null
+      return this.start()
+    }
     await this.start()
     await deleteMachine(this.#projectId)
     this.savedAt = null
@@ -467,7 +491,11 @@ export class LinuxMachine {
   /** Save the machine (memory, files and running programs) in the browser. */
   save() {
     if (!this.#emulator || this.status === 'error') return this.#saveChain
-    this.#saveChain = this.#saveChain.then(async () => {
+    // A save not started yet will save everything up to now as well, so at
+    // most one waits behind the one in progress.
+    if (this.#queuedSave) return this.#queuedSave
+    this.#queuedSave = this.#saveChain = this.#saveChain.then(async () => {
+      this.#queuedSave = null
       if (!this.#emulator) return
       this.saving = true
       try {

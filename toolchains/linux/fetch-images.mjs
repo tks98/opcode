@@ -13,7 +13,7 @@
 // anonymous users may download images).
 
 import { createHash } from 'node:crypto'
-import { copyFileSync, existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gunzipSync } from 'node:zlib'
@@ -77,6 +77,42 @@ function tar(entries) {
   return Buffer.concat(blocks)
 }
 
+// Reads back what tar() writes: archive path -> data.
+function untar(archive) {
+  const files = new Map()
+  for (let at = 0; at + 512 <= archive.length; ) {
+    const header = archive.subarray(at, at + 512)
+    if (header.every((byte) => byte === 0)) break
+    const path = header.subarray(0, 100).toString().replace(/\0.*$/s, '')
+    const size = parseInt(header.subarray(124, 136).toString(), 8)
+    files.set(path, archive.subarray(at + 512, at + 512 + size))
+    at += 512 + Math.ceil(size / 512) * 512
+  }
+  return files
+}
+
+// A cached archive is only used if it still matches the pinned digests: each
+// image's manifest (kept next to the archive) has its pinned digest, and the
+// config and layers in the archive have the checksums that manifest and
+// config name. Anything else in the cache is ignored and fetched again.
+function verifyCached(archive, manifests) {
+  const files = untar(archive)
+  const expected = []
+  for (const { name, tag, digest } of IMAGES) {
+    const manifestBytes = Buffer.from(manifests[digest] ?? '', 'base64')
+    if (`sha256:${sha256(manifestBytes)}` !== digest) return false
+    const image = JSON.parse(manifestBytes)
+    const configPath = `${image.config.digest.slice('sha256:'.length)}.json`
+    const configBytes = files.get(configPath)
+    if (!configBytes || `sha256:${sha256(configBytes)}` !== image.config.digest) return false
+    const config = JSON.parse(configBytes)
+    const layers = config.rootfs.diff_ids.map((diffId) => `${diffId.slice('sha256:'.length)}.tar`)
+    for (const [i, path] of layers.entries()) if (!files.has(path) || `sha256:${sha256(files.get(path))}` !== config.rootfs.diff_ids[i]) return false
+    expected.push({ Config: configPath, RepoTags: [`${name}:${tag}`], Layers: layers })
+  }
+  return files.get('manifest.json')?.toString() === JSON.stringify(expected) && files.size === new Set(expected.flatMap((item) => [item.Config, ...item.Layers])).size + 1
+}
+
 if (process.argv[2] === '--latest') {
   for (const { name, tag } of IMAGES) {
     const repository = `library/${name}`
@@ -96,19 +132,27 @@ if (!output) {
 
 const cacheDir = join(dirname(fileURLToPath(import.meta.url)), '../../node_modules/.cache/opcode-docker-images')
 const cached = join(cacheDir, `images-${sha256(JSON.stringify(IMAGES)).slice(0, 16)}.tar`)
-if (existsSync(cached)) {
-  copyFileSync(cached, output)
-  console.log(`  ${output}: from the cache`)
-  process.exit(0)
+const cachedManifests = `${cached}.manifests.json`
+if (existsSync(cached) && existsSync(cachedManifests)) {
+  try {
+    if (verifyCached(readFileSync(cached), JSON.parse(readFileSync(cachedManifests, 'utf8')))) {
+      copyFileSync(cached, output)
+      console.log(`  ${output}: from the cache`)
+      process.exit(0)
+    }
+  } catch {}
+  console.log('  The cached images do not match their digests; downloading them again')
 }
 
 const files = new Map() // archive path -> data (layers shared between images are stored once)
 const manifest = []
+const manifests = {} // pinned digest -> manifest bytes (base64), to check the cache with
 for (const { name, tag, digest } of IMAGES) {
   const repository = `library/${name}`
   const auth = await token(repository)
   const manifestBytes = await get(repository, `manifests/${digest}`, auth)
   if (`sha256:${sha256(manifestBytes)}` !== digest) throw new Error(`Checksum mismatch for ${name}@${digest}`)
+  manifests[digest] = manifestBytes.toString('base64')
   const image = JSON.parse(manifestBytes)
   const configBytes = await blob(repository, image.config.digest, auth)
   const config = JSON.parse(configBytes)
@@ -135,4 +179,5 @@ writeFileSync(output, archive)
 mkdirSync(cacheDir, { recursive: true })
 writeFileSync(`${cached}.part`, archive)
 renameSync(`${cached}.part`, cached)
+writeFileSync(cachedManifests, JSON.stringify(manifests))
 console.log(`  ${output}: ${(archive.length / 1e6).toFixed(1)} MB`)

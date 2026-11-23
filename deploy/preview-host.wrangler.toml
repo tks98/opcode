@@ -1,6 +1,7 @@
 # opcode-dev.com's web preview host: a Cloudflare Worker on its own domain
 # (see docs/deploying.md, "Web preview host"). Deploy it with
-#   npm run build:preview-host && npx wrangler deploy -c deploy/preview-host.wrangler.toml
+#   OPCODE_APP_ORIGINS=https://opcode-dev.com npm run build:preview-host && npx wrangler@4.158.0 deploy -c deploy/preview-host.wrangler.toml
+# (OPCODE_APP_ORIGINS: only the app's own pages may then use the host)
 # and again after updating @wasmer/sdk, whose files it serves. For your own
 # site, change the name and the domain.
 name = "opcode-preview"
