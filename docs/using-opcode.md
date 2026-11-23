@@ -15,7 +15,7 @@ Open Opcode and pick a language: the starter program is one click on **Run** awa
 - **Web pages**: HTML, CSS and JavaScript projects. Run serves the folder (`serve` in the terminal) and opens the page in the preview, which updates as you type
 - **`code <file>`** in the terminal opens (or creates) a file in the editor, like VS Code
 - **Files stay in sync both ways**: edits go to the terminal immediately, and files the terminal creates, changes or deletes show up in the editor (compiled programs appear greyed out)
-- **Folders**: nested folders, rename and move, drag-and-drop or upload files, ZIP import and export
+- **Folders**: nested folders, rename and move, drag-and-drop or upload files, ZIP import and export (up to 2,000 files and 50 MB at a time)
 - **Monaco editor**: VS Code's editor, with per-file undo history and syntax highlighting for dozens of languages
 - **Internet access** (with a relay, see [Deploying](deploying.md#internet-relay)): `pip install`, `git clone`, `curl` and API calls work from terminals and Linux machines. The status bar shows *Internet: on*/*off* and opens the settings.
 - **Web preview**: start a server in the terminal (`python3 -m http.server`, `php -S localhost:8000`, a Node or Flask app, or `docker run -p 8080:80 nginx` on a Docker machine) and its page opens in a preview panel beside the editor. R's plots show there too. It follows the server as you stop and restart it, and `http://localhost:…` links in the terminal open there too. With a [wildcard preview host](deploying.md#web-preview-host), every server gets its own address, so several can run and be previewed (or opened in their own tabs) at once.

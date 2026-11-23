@@ -5,6 +5,7 @@
 
 import { getWasmer } from './wasmer.js'
 import { DOTNET_MANAGED, JAVA_HOME, RUST_SYSROOT, RUST_TARGET, SHELL_PACKAGES, TOOLCHAINS } from '../languages.js'
+import { isIgnoredPath, tryNormalizePath } from '../paths.js'
 
 const CACHE_NAME = 'opcode-toolchains-v1'
 const loads = new Map()
@@ -71,23 +72,45 @@ async function cachedFetch(url) {
 
 /**
  * Download a file with progress, keeping a copy in the Cache API so the
- * next visit loads it from disk. Resolves to its bytes.
+ * next visit loads it from disk. Resolves to its bytes. Only for Opcode's
+ * own files: anything cached stays there.
  */
 export async function downloadBytes(label, url, sizeHintMB, emit) {
   const { response, cached } = await cachedFetch(url)
   if (!response.ok) throw new Error(`Could not download ${label} (HTTP ${response.status})`)
-  const total = Number(response.headers.get('content-length')) || (cached ? null : sizeHintMB * 1e6)
+  return readBody(response, { label, sizeHintMB: cached ? null : sizeHintMB, emit: cached ? null : emit })
+}
+
+/**
+ * Download a file from somewhere else (a shared machine): not cached, and
+ * given up once it passes `maxBytes`. Resolves to its bytes.
+ */
+export async function downloadCapped(label, url, { maxBytes, sizeHintMB = null, emit } = {}) {
+  const response = await fetch(url, { cache: 'no-store', credentials: 'omit' })
+  if (!response.ok) throw new Error(`Could not download ${label} (HTTP ${response.status})`)
+  return readBody(response, { label, maxBytes, sizeHintMB, emit })
+}
+
+/** A response's body as bytes, with progress, stopping past `maxBytes`. */
+export async function readBody(response, { label = 'file', maxBytes = Infinity, sizeHintMB = null, emit = null } = {}) {
+  const tooBig = () => new Error(`The file is larger than ${formatBytes(maxBytes)}.`)
+  const declared = Number(response.headers.get('content-length')) || null
+  if (declared > maxBytes) throw tooBig()
+  const total = declared ?? (sizeHintMB ? sizeHintMB * 1e6 : null)
   const reader = response.body.getReader()
   const chunks = []
   let received = 0
   for (;;) {
     const { done, value } = await reader.read()
     if (done) break
-    chunks.push(value)
     received += value.length
-    if (!cached) {
-      emit({ label, phase: 'downloading', percent: total ? Math.min(99, (received / total) * 100) : null, downloadedBytes: received, totalBytes: total })
+    if (received > maxBytes) {
+      // The server can send more than it said it would.
+      reader.cancel().catch(() => {})
+      throw tooBig()
     }
+    chunks.push(value)
+    emit?.({ label, phase: 'downloading', percent: total ? Math.min(99, (received / total) * 100) : null, downloadedBytes: received, totalBytes: total })
   }
   const bytes = new Uint8Array(received)
   let offset = 0
@@ -98,15 +121,71 @@ export async function downloadBytes(label, url, sizeHintMB, emit) {
   return bytes
 }
 
+const isGzip = (bytes) => bytes[0] === 0x1f && bytes[1] === 0x8b
+
 /**
- * Decompress gzip data. Hosts that serve .gz files with
- * Content-Encoding: gzip hand over already-decompressed bytes, which are
- * returned unchanged.
+ * Decompress gzip data, giving up once the output passes `maxBytes` (a few
+ * hundred kilobytes of gzip can unpack to gigabytes). Hosts that serve .gz
+ * files with Content-Encoding: gzip hand over already-decompressed bytes,
+ * which are returned unchanged.
  */
-export async function gunzipIfNeeded(bytes) {
-  if (bytes[0] !== 0x1f || bytes[1] !== 0x8b) return bytes
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
-  return new Uint8Array(await new Response(stream).arrayBuffer())
+export async function gunzipIfNeeded(bytes, { maxBytes = Infinity } = {}) {
+  if (!isGzip(bytes)) {
+    if (bytes.length > maxBytes) throw unpacksTooBig(maxBytes)
+    return bytes
+  }
+  // gzip ends with the unpacked size (mod 4 GB), so the output usually fits
+  // in one buffer, sized up front. It is only a hint: the cap still holds,
+  // but data that says it is over the cap is (its last part alone would be).
+  const stated = bytes.length >= 18 ? new DataView(bytes.buffer, bytes.byteOffset + bytes.length - 4, 4).getUint32(0, true) : 0
+  if (stated > maxBytes) throw unpacksTooBig(maxBytes)
+  let out = new Uint8Array(Math.min(maxBytes, stated || 1 << 20))
+  let length = 0
+  await inflate(new Blob([bytes]), maxBytes, (chunk) => {
+    if (length + chunk.length > out.length) {
+      const grown = new Uint8Array(Math.min(maxBytes, Math.max(out.length * 2, length + chunk.length)))
+      grown.set(out.subarray(0, length))
+      out = grown
+    }
+    out.set(chunk, length)
+    length += chunk.length
+  })
+  return length === out.length ? out : out.subarray(0, length)
+}
+
+/**
+ * The unpacked size of gzip data and its first `headBytes` bytes, without
+ * keeping the rest (to check a file before saving it).
+ */
+export async function measureGunzip(blob, { maxBytes = Infinity, headBytes = 16 } = {}) {
+  const head = new Uint8Array(headBytes)
+  let size = 0
+  await inflate(blob, maxBytes, (chunk) => {
+    if (size < headBytes) head.set(chunk.subarray(0, headBytes - size), size)
+    size += chunk.length
+  })
+  return { size, head: head.subarray(0, Math.min(size, headBytes)) }
+}
+
+async function inflate(blob, maxBytes, onChunk) {
+  const reader = blob.stream().pipeThrough(new DecompressionStream('gzip')).getReader()
+  let size = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) return size
+    size += value.length
+    if (size > maxBytes) {
+      reader.cancel().catch(() => {})
+      throw unpacksTooBig(maxBytes)
+    }
+    onChunk(value)
+  }
+}
+
+function unpacksTooBig(maxBytes) {
+  const error = new RangeError(`It unpacks to more than ${formatBytes(maxBytes)}.`)
+  error.code = 'TOO_BIG'
+  return error
 }
 
 async function loadLocalToolchain(toolchain, emit) {
@@ -145,6 +224,101 @@ export function untar(bytes) {
     offset += 512 + Math.ceil(size / 512) * 512
   }
   return files
+}
+
+/**
+ * The files in a zip (a JSZip object) to import as a project: [{ path, bytes }],
+ * without a single wrapping folder, and how many were too big. The sizes a
+ * zip states can be false, and JSZip only checks them after unpacking an
+ * entry in full, so each entry is unpacked in pieces and given up once it
+ * passes `maxFileBytes`; past `maxTotalBytes` in all, the import fails.
+ */
+export async function readZip(zip, { maxFiles, maxFileBytes, maxTotalBytes }) {
+  const limits = `a project can import up to ${maxFiles} files and ${Math.round(maxTotalBytes / 1e6)} MB`
+  // Stated sizes (JSZip keeps them in _data): an early, cheap check only.
+  const statedSize = (entry) => entry._data?.uncompressedSize ?? 0
+  let tooBig = 0
+  const entries = Object.values(zip.files).filter((entry) => {
+    if (entry.dir || isIgnoredPath(entry.name) || entry.name.startsWith('__MACOSX/')) return false
+    if (statedSize(entry) > maxFileBytes) return (tooBig++, false)
+    return true
+  })
+  const stated = entries.reduce((sum, entry) => sum + statedSize(entry), 0)
+  if (entries.length > maxFiles || stated > maxTotalBytes) {
+    throw new Error(`it has ${entries.length} files (${Math.round(stated / 1e6)} MB); ${limits}`)
+  }
+  // Drop a single wrapping folder (zips of a folder usually have one).
+  const roots = new Set(entries.map((e) => e.name.split('/')[0]))
+  const strip = roots.size === 1 && entries.every((e) => e.name.includes('/')) ? `${[...roots][0]}/` : ''
+  const files = []
+  let total = 0
+  for (const entry of entries) {
+    // JSZip fails an entry whose real size isn't the stated one, once it
+    // has unpacked it (within maxFileBytes, here).
+    const bytes = await readZipEntry(entry, maxFileBytes).catch(() => {
+      throw new Error('it is damaged')
+    })
+    if (!bytes) {
+      tooBig++
+      continue
+    }
+    total += bytes.length
+    if (total > maxTotalBytes) throw new Error(`it unpacks to more than ${Math.round(maxTotalBytes / 1e6)} MB; ${limits}`)
+    files.push({ path: entry.name.slice(strip.length), bytes })
+  }
+  return { files, tooBig }
+}
+
+/** A zip entry's bytes, or null once it passes `maxBytes` (unpacking stops there). */
+export function readZipEntry(entry, maxBytes) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    let size = 0
+    let stopped = false
+    const stream = entry.internalStream('uint8array')
+    stream
+      .on('data', (chunk) => {
+        if (stopped) return
+        size += chunk.length
+        if (size > maxBytes) {
+          stopped = true
+          chunks.length = 0
+          stream.pause()
+          resolve(null)
+          return
+        }
+        chunks.push(chunk)
+      })
+      .on('error', (error) => stopped || reject(error))
+      .on('end', () => {
+        if (stopped) return
+        const bytes = new Uint8Array(size)
+        let offset = 0
+        for (const chunk of chunks) {
+          bytes.set(chunk, offset)
+          offset += chunk.length
+        }
+        resolve(bytes)
+      })
+      .resume()
+  })
+}
+
+/**
+ * A project's files and folders as they go into an exported zip: only paths
+ * the project itself accepts (no "..", absolute paths or reserved names), so
+ * a file a program created with a hostile name can't escape the folder the
+ * zip is unpacked into. `skipped` counts what was left out.
+ */
+export function zipContents({ files, folders }) {
+  let skipped = 0
+  const safe = (path) => tryNormalizePath(path) ?? (skipped++, null)
+  const safeFolders = folders.map(safe).filter(Boolean)
+  const safeFiles = files.flatMap((file) => {
+    const path = safe(file.path)
+    return path ? [{ path, content: file.content }] : []
+  })
+  return { files: safeFiles, folders: safeFolders, skipped }
 }
 
 // Rust: rustc as a command, with the standard library bundled as files at

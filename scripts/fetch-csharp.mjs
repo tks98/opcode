@@ -17,7 +17,7 @@
 // Usage: node scripts/fetch-csharp.mjs [--force]
 
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { createReadStream, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
@@ -38,15 +38,32 @@ const out = join(root, 'public', 'toolchains', 'csharp')
 const cache = join(root, 'node_modules', '.cache', 'opcode-csharp')
 const runner = join(root, 'toolchains', 'csharp', 'csharp.dll')
 const stampFile = join(out, 'packages.json')
-const stamp = JSON.stringify({ packages: PACKAGES.map((p) => `${p.id}@${p.version}:${p.sha256}`), runner: createHash('sha256').update(readFileSync(runner)).digest('hex') })
+const inputs = { packages: PACKAGES.map((p) => `${p.id}@${p.version}:${p.sha256}`), runner: createHash('sha256').update(readFileSync(runner)).digest('hex') }
 const OUTPUTS = ['dotnet.wasm.gz', 'managed.tar.gz']
 
-function upToDate() {
+async function hashFile(file) {
+  const hash = createHash('sha256')
+  for await (const chunk of createReadStream(file)) hash.update(chunk)
+  return hash.digest('hex')
+}
+
+// The stamp also records each output's checksum, so a file swapped in by a
+// build cache isn't taken as built from these inputs.
+async function upToDate() {
   try {
-    return readFileSync(stampFile, 'utf8') === stamp && OUTPUTS.every((file) => existsSync(join(out, file)))
+    const saved = JSON.parse(readFileSync(stampFile, 'utf8'))
+    if (JSON.stringify(saved.inputs) !== JSON.stringify(inputs)) return false
+    for (const file of OUTPUTS) if ((await hashFile(join(out, file))) !== saved.outputs?.[file]) return false
+    return true
   } catch {
     return false
   }
+}
+
+async function writeStamp() {
+  const outputs = {}
+  for (const file of OUTPUTS) outputs[file] = await hashFile(join(out, file))
+  writeFileSync(stampFile, JSON.stringify({ inputs, outputs }))
 }
 
 async function download({ id, version, sha256 }) {
@@ -88,7 +105,7 @@ function tar(entries) {
   return Buffer.concat(blocks)
 }
 
-if (!process.argv.includes('--force') && upToDate()) process.exit(0)
+if (!process.argv.includes('--force') && (await upToDate())) process.exit(0)
 
 try {
   const zips = {}
@@ -114,7 +131,7 @@ try {
   writeFileSync(join(out, 'dotnet.wasm.gz'), gzipSync(await read(wasi, 'runtimes/wasi-wasm/native/dotnet.wasm'), { level: 9 }))
   const entries = [...managed].sort(([a], [b]) => a.localeCompare(b)).map(([name, data]) => ({ path: name, data }))
   writeFileSync(join(out, 'managed.tar.gz'), gzipSync(tar(entries), { level: 9 }))
-  writeFileSync(stampFile, stamp)
+  await writeStamp()
   for (const file of OUTPUTS) console.log(`  csharp/${file}: ${(readFileSync(join(out, file)).length / 1e6).toFixed(1)} MB`)
 } catch (error) {
   console.error(`\nCould not prepare C#: ${error.message}`)

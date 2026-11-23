@@ -1,5 +1,8 @@
 # Netlify / Cloudflare Pages: Opcode's WebAssembly runtime needs a
-# cross-origin isolated page (SharedArrayBuffer).
+# cross-origin isolated page (SharedArrayBuffer). No other site may frame the
+# app (clickjacking); previews are framed from the preview host, which has its
+# own headers (scripts/preview-host.mjs).
 /*
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: require-corp
+  Content-Security-Policy: frame-ancestors 'none'

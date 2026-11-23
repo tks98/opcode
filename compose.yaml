@@ -8,7 +8,10 @@
 #   OPCODE_DOMAIN=opcode.example.com docker compose up -d
 #
 # It runs the image published from this repository's main branch
-# (`docker compose pull` updates it). To run your own build instead:
+# (`docker compose pull` updates it). To stay on one tested build instead,
+# use its :sha-<commit> tag (each push to main publishes one next to
+# :latest), or pin a digest: ghcr.io/tks98/opcode@sha256:... To run your own
+# build instead:
 # `docker build -t ghcr.io/tks98/opcode .` first.
 #
 # Add OPCODE_RELAY=on to give terminals and Linux machines internet access
@@ -20,6 +23,8 @@ services:
     restart: unless-stopped
     environment:
       OPCODE_PREVIEW_HOST: https://preview.${OPCODE_DOMAIN:?set OPCODE_DOMAIN to your domain}/
+      # Only the site's own pages may embed its preview host.
+      OPCODE_APP_ORIGINS: https://${OPCODE_DOMAIN}
       OPCODE_RELAY: ${OPCODE_RELAY:-off}
       OPCODE_RELAY_ARGS: ${OPCODE_RELAY_ARGS:-}
 

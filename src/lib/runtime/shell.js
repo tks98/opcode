@@ -39,6 +39,21 @@ export const TERMCAP = String.raw`xterm-256color|xterm|xterm with 256 colors:am:
 export const HISTORY_PATH = `${INTERNAL_DIR}/bash_history`
 export const HISTORY_FILE = `${WORKSPACE_ROOT}/${HISTORY_PATH}`
 
+// What of the shell's history is saved with the project. A program can write
+// the history file, so cap the lines kept, their length and the total.
+const HISTORY_LINES = 1000
+const HISTORY_LINE_CHARS = 4096
+const HISTORY_CHARS = 256 * 1024
+
+/** The shell history to save: the last lines, long ones left out. */
+export function limitHistory(text) {
+  const lines = String(text ?? '').split('\n').filter((line) => line.length <= HISTORY_LINE_CHARS).slice(-HISTORY_LINES)
+  let total = 0
+  let start = lines.length
+  while (start > 0 && total + lines[start - 1].length + 1 <= HISTORY_CHARS) total += lines[--start].length + 1
+  return lines.slice(start).join('\n')
+}
+
 // The shell's id as bash expands it. Defined outside BASHRC, where ${...}
 // would be read as JavaScript interpolation.
 const SHELL_ID_EXPANSION = '${OPCODE_SHELL:-1}'

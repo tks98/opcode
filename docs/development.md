@@ -95,7 +95,7 @@ scripts/fetch-rust.mjs          # Downloads the Rust toolchain (pinned, checksum
 scripts/wasmer-packages.mjs     # Locks and downloads the Wasmer packages (wasmer-packages.lock.json)
 scripts/fetch-java.mjs          # Builds Java's runtime files from a pinned Corretto JDK
 scripts/fetch-csharp.mjs        # Builds the C# toolchain from pinned NuGet packages
-scripts/copy-npm-toolchains.mjs # Copies Ruby, TypeScript and webR (R) from their pinned npm packages
+scripts/copy-npm-toolchains.mjs # Copies Ruby, TypeScript and webR (R) from their pinned npm packages; patches webR so R can't run JavaScript
 scripts/make-mono-font.py       # Builds the Recursive Mono code font
 scripts/preview-host.mjs        # Builds/serves a self-hosted web preview host (and its Cloudflare Worker)
 scripts/wisp-server.mjs         # Internet relay (Wisp + DNS-over-HTTPS)

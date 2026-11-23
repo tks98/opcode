@@ -1,6 +1,7 @@
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createR, parseRscriptArgs } from '../src/lib/runtime/rlang.js'
+import { patchedWebrForTests } from '../scripts/copy-npm-toolchains.mjs'
 
 describe('Rscript command line', () => {
   it('reads a file and its arguments, or expressions', () => {
@@ -13,13 +14,15 @@ describe('Rscript command line', () => {
   })
 })
 
-// webR itself, as in the browser (its Node build).
+// webR itself, as in the browser (its Node build), patched as the app ships
+// it (see scripts/copy-npm-toolchains.mjs).
 describe('R', () => {
   const encode = (text) => new TextEncoder().encode(text)
   let R
   beforeAll(async () => {
-    const { WebR } = await import('webr')
-    R = createR(WebR, fileURLToPath(new URL('../node_modules/webr/dist/', import.meta.url)))
+    const dir = patchedWebrForTests(fileURLToPath(new URL('../node_modules/.cache/webr-rlang-test/', import.meta.url)))
+    const { WebR } = await import(pathToFileURL(`${dir}webr.mjs`).href)
+    R = createR(WebR, dir)
   })
   afterAll(() => R?.closeConsole('test'))
 

@@ -28,6 +28,32 @@ ALPINE_VERSION=3.24.2
 ALPINE_BRANCH=v3.24
 MIRROR=${ALPINE_MIRROR:-https://dl-cdn.alpinelinux.org/alpine}
 
+# Pinned here rather than read from the mirror, so a mirror can't hand out a
+# different file along with its checksum. To update, for a new ALPINE_VERSION:
+#   curl -fsSL https://dl-cdn.alpinelinux.org/alpine/$ALPINE_BRANCH/releases/x86/alpine-minirootfs-$ALPINE_VERSION-x86.tar.gz.sha256
+# and for apk-tools-static (the branch keeps only its newest build, so this
+# needs updating when the download below fails): the file name in
+# https://dl-cdn.alpinelinux.org/alpine/$ALPINE_BRANCH/main/<x86_64|x86>/,
+# then sha256sum of that .apk.
+MINIROOTFS_SHA256=757f07c5a3476ba3947cfbea2323b7f02fb6fb2fba8a3a3c2b9d17f0a54c9226
+APK_TOOLS_VERSION=3.0.9-r0
+declare -A APK_TOOLS_SHA256=(
+  [x86_64]=0a1a0682375f66a83b7b903f6e4638ccfe312547d50d336b5f2be9fc391281be
+  [x86]=10a588ec557af8bfa7c6f82da013bab44f96fb7a4342e547f02ed1de800ab35c
+)
+
+# apk checks package signatures, but the two files above run before it can,
+# as root: only fetch them over plain HTTP if asked to.
+case "$MIRROR" in
+  https://*) ;;
+  *)
+    if [ "${ALPINE_ALLOW_INSECURE_MIRROR:-}" != 1 ]; then
+      echo "ALPINE_MIRROR must be an https:// URL (set ALPINE_ALLOW_INSECURE_MIRROR=1 to use $MIRROR anyway)." >&2
+      exit 1
+    fi
+    ;;
+esac
+
 # What students get. Keep it focused: tools for learning the command line.
 PACKAGES=(
   bash bash-completion coreutils findutils grep sed gawk diffutils patch
@@ -72,13 +98,21 @@ fi
 echo "==> Downloading Alpine $ALPINE_VERSION (x86)"
 tarball=alpine-minirootfs-$ALPINE_VERSION-x86.tar.gz
 curl -fsSL -o "$work/$tarball" "$MIRROR/$ALPINE_BRANCH/releases/x86/$tarball"
-expected=$(curl -fsSL "$MIRROR/$ALPINE_BRANCH/releases/x86/$tarball.sha256" | cut -d' ' -f1)
-echo "$expected  $work/$tarball" | sha256sum -c -
+echo "$MINIROOTFS_SHA256  $work/$tarball" | sha256sum -c -
 tar -xzf "$work/$tarball" -C "$rootfs"
 
 host_arch=$(uname -m)
-apk_tools=$(curl -fsSL "$MIRROR/$ALPINE_BRANCH/main/$host_arch/" | grep -o 'apk-tools-static-[^"]*\.apk' | sort -V | tail -1)
-curl -fsSL -o "$work/apk-tools.apk" "$MIRROR/$ALPINE_BRANCH/main/$host_arch/$apk_tools"
+case "$host_arch" in i?86) host_arch=x86 ;; esac
+if [ -z "${APK_TOOLS_SHA256[$host_arch]:-}" ]; then
+  echo "No pinned apk-tools-static for $host_arch (expected x86_64 or x86)." >&2
+  exit 1
+fi
+apk_tools=apk-tools-static-$APK_TOOLS_VERSION.apk
+if ! curl -fsSL -o "$work/apk-tools.apk" "$MIRROR/$ALPINE_BRANCH/main/$host_arch/$apk_tools"; then
+  echo "Could not download $apk_tools: Alpine may have replaced it with a newer build. Update APK_TOOLS_VERSION and APK_TOOLS_SHA256 (see the top of this script)." >&2
+  exit 1
+fi
+echo "${APK_TOOLS_SHA256[$host_arch]}  $work/apk-tools.apk" | sha256sum -c -
 tar -xzf "$work/apk-tools.apk" -C "$work" sbin/apk.static 2>/dev/null
 apk() {
   "$work/sbin/apk.static" --arch x86 --keys-dir "$rootfs/etc/apk/keys" \

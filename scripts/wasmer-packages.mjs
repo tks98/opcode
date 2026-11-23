@@ -17,7 +17,7 @@
 //                                             again and rewrite the lock
 
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { createReadStream, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -137,12 +137,31 @@ function pick(name, answer, ranges) {
   return chosen
 }
 
+// Streamed, so checking 150 MB of packages doesn't hold them all in memory.
+function hashFile(path) {
+  return new Promise((resolve, reject) => {
+    const hash = createHash('sha256')
+    createReadStream(path).on('error', reject).on('data', (chunk) => hash.update(chunk)).on('end', () => resolve(hash.digest('hex')))
+  })
+}
+
 async function download() {
   const { info, packages } = JSON.parse(readFileSync(lockFile, 'utf8'))
   const registry = `${JSON.stringify({ info, packages: Object.fromEntries(Object.entries(packages).map(([name, item]) => [name, item.answer])) })}\n`
   const registryFile = join(out, 'registry.json')
   const file = (item) => join(out, `${item.sha256}.webc`)
-  const missing = Object.entries(packages).filter(([, item]) => !existsSync(file(item)))
+  // A file that is already there may come from a CI or Docker build cache, so
+  // its name is not proof of its contents: hash it, and fetch it again if it
+  // doesn't match the lock.
+  const missing = []
+  for (const [name, item] of Object.entries(packages)) {
+    if (existsSync(file(item))) {
+      if ((await hashFile(file(item))) === item.sha256) continue
+      console.log(`  ${name}@${item.version}: the cached file doesn't match the lock; fetching it again`)
+      rmSync(file(item), { force: true })
+    }
+    missing.push([name, item])
+  }
   if (!missing.length && existsSync(registryFile) && readFileSync(registryFile, 'utf8') === registry) return
   mkdirSync(out, { recursive: true })
   if (missing.length) {

@@ -4,6 +4,7 @@
 import { APPLE_MOBILE_RUNTIME_PAGES, capSharedMemories, isAppleMobile } from './appleMobile.js'
 import appleWorkerUrl from './wasmerWorker.apple.js?worker&url'
 import { installWasmerMirror } from './wasmerMirror.js'
+import { installSdkHostBroker } from '../linux/httpBridge.js'
 
 let clientPromise = null
 
@@ -53,6 +54,8 @@ export function getWasmer() {
       if (problem) throw new EnvironmentError(problem)
       installAppleMobileWorkarounds()
       installWasmerMirror()
+      // The SDK's web preview host frames: sandboxed, one per server (see httpBridge.js).
+      installSdkHostBroker()
       const { Wasmer } = await importSdk()
       const client = new Wasmer()
       await client.ready()

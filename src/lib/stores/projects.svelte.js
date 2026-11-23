@@ -7,7 +7,7 @@
 
 import { LoadError, loadState, saveState, saveStateNow } from '../persistence.js'
 import { LANGUAGES, languageForFiles } from '../languages.js'
-import { ancestors, dirname, extname, isWithin, joinPath, normalizePath, reparent, stem, tryNormalizePath } from '../paths.js'
+import { ancestors, dirname, extname, isProjectPath, isWithin, joinPath, normalizePath, reparent, stem, tryNormalizePath } from '../paths.js'
 
 const SAVE_DELAY_MS = 400
 
@@ -413,20 +413,33 @@ export const projectStore = {
   applySandboxChanges(projectId, { upserts = [], deletes = [], addFolders = [], removeFolders = [] }) {
     const project = findProject(projectId)
     if (!project) return
+    // Linear in the number of files (a program can make many).
+    const byPath = new Map(project.files.map((f) => [f.path, f]))
+    const added = []
     for (const { path, content } of upserts) {
-      const file = project.files.find((f) => f.path === path)
+      // Only names the project can hold as they are (the sync leaves others
+      // in the terminal; see planScan).
+      if (!isProjectPath(path)) continue
+      const file = byPath.get(path)
       if (file) file.content = content
-      else project.files.push(newFile(path, content))
+      else {
+        const created = newFile(path, content)
+        byPath.set(path, created)
+        added.push(created)
+      }
     }
+    if (added.length) project.files.push(...added)
     if (deletes.length) {
       const gone = new Set(deletes)
       removeFiles(project, (f) => gone.has(f.path))
     }
     const removed = new Set(removeFolders)
-    project.folders = project.folders.filter((dir) => !removed.has(dir))
-    for (const dir of addFolders) if (!project.folders.includes(dir)) project.folders.push(dir)
+    const folders = new Set(project.folders.filter((dir) => !removed.has(dir)))
+    for (const dir of addFolders) if (isProjectPath(dir)) folders.add(dir)
     // Folders that now contain files no longer need an explicit entry.
-    project.folders = project.folders.filter((dir) => !project.files.some((f) => isWithin(f.path, dir) && f.path !== dir))
+    const filled = new Set(project.files.flatMap((f) => ancestors(f.path)))
+    const kept = [...folders].filter((dir) => !filled.has(dir))
+    if (kept.length !== project.folders.length || kept.some((dir, i) => dir !== project.folders[i])) project.folders = kept
     if (upserts.length || deletes.length) touch(project)
     scheduleSave()
   },

@@ -20,7 +20,9 @@ export function normalizePath(input) {
   for (const segment of raw.split('/')) {
     if (segment === '' || segment === '.') continue
     if (segment === '..') throw new Error('Paths cannot contain ".."')
-    if (/[\0<>:"|?*]/.test(segment)) throw new Error(`"${segment}" contains characters that are not allowed in file names`)
+    // (Control characters too: names a program can create, but not ones to
+    // show, type or put in a zip.)
+    if (/[\0-\x1f\x7f<>:"|?*]/.test(segment)) throw new Error(`"${segment}" contains characters that are not allowed in file names`)
     segments.push(segment)
   }
   if (segments.length === 0) throw new Error('A name is required')
@@ -37,6 +39,16 @@ export function tryNormalizePath(input) {
   } catch {
     return null
   }
+}
+
+/**
+ * True if a path from the terminal can go into the project as it is: what
+ * normalizePath would keep unchanged. Others (backslashes, "..", control
+ * characters, a reserved first folder) stay in the terminal only, as they
+ * would be renamed when the project is next loaded (see migrateProject).
+ */
+export function isProjectPath(path) {
+  return tryNormalizePath(path) === path
 }
 
 export function basename(path) {

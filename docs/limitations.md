@@ -11,7 +11,7 @@
 - **Go** runs on an interpreter. The standard library works, but third-party modules and `go build` don't.
 - **Java** is Java 21 (javac is JDK 21's), and the JVM is Ristretto, not HotSpot: it interprets bytecode (a loop of 10 million steps takes about a second), and APIs that need native code it doesn't provide, such as Swing and other GUI classes, throw `UnsatisfiedLinkError`. Only `java.base` is included, so `java.sql`, `java.net.http` and other modules aren't available.
 - **C#** runs .NET 8's class libraries on an interpreter (no JIT): no `Task.Run`, `Task.Delay` or other waiting (the runtime has no thread pool or timers), no NuGet packages or networking, and stack traces don't show line numbers.
-- **R** scripts can't read keyboard input (`readline()` returns `""`, as in Rscript), and only packages built for webR install. Plots are PNG images (800×600).
+- **R** scripts can't read keyboard input (`readline()` returns `""`, as in Rscript), and only packages built for webR install. R can't run JavaScript: `webr::eval_js()` gives an error, and packages that bring their own JavaScript don't load (R runs on Opcode's own pages, where JavaScript could read every project). Plots are PNG images (800×600).
 - **Ruby** is 3.2, without `irb` (the build has no `io/console`); gems that need C extensions can't be installed.
 - **Lua** has no `os.execute`, `io.popen` or temporary files (WASI doesn't provide them).
 - **TypeScript**'s type errors show when `tsc` runs, not in the editor; the type definitions of packages in `node_modules` are used, but `npm install` itself depends on Node.js (Edge.js).
@@ -21,5 +21,6 @@
 - **Terminal size**: resizing interrupts programs waiting for input on WASIX, so a new size is applied when the shell returns to its prompt.
 - **Web pages' console**: `console.log` and errors from a page show in the browser's developer tools (open the page in its own tab with ↗), not in Opcode's terminal.
 - **Files the terminal creates that aren't text** (such as compiled programs) live only in the running session; they aren't saved or exported.
+- **Files the editor doesn't show**: the editor mirrors up to 5,000 files and 50 MB of a project's text files (each up to 1 MB). Files past that, and files whose names a project can't use (a backslash, `..`, control characters, `<>:"|?*`), stay in the terminal only; the terminal says so once.
 - **Browsers**: works in current Chrome, Edge, Firefox and Safari. Safari needs version 27 or later (iOS and iPadOS 27 on iPhone and iPad), for the Wasmer SDK.
 - **iPhone and iPad** (every browser there uses Safari's engine): programs that don't set their own memory limit (most, including Bash and Python) can use up to 64 MiB, because iOS lets a page reserve only a few GiB of WebAssembly memory in all; a program that needs more stops with its own out-of-memory error. Rust's compiler sets its own (1 GiB) and keeps it. Python, Bash, Java and Rust are tested there; C and C++, Go and the others are not yet. See [the iPhone and iPad plan](plans/ios.md).

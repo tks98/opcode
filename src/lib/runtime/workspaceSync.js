@@ -4,10 +4,55 @@
 // return the operations to apply. ProjectSandbox performs the I/O.
 //
 // Baseline: { files: Map<path, string>, dirs: Set<path> }
-// Snapshot (from the sandbox): { files: Map<path, {size, text}>, dirs: Set<path> }
+// Snapshot (from the sandbox): { files: Map<path, {size, text, skipped?}>, dirs: Set<path> }
 //   where `text` is the file contents, or null for binary or oversized files.
+//   `skipped` files (see planScan) are left out of the editor: it keeps its
+//   own copy, if it has one, and nothing is deleted on either side.
 
-import { ancestors, isWithin } from '../paths.js'
+import { ancestors, isProjectPath, isWithin } from '../paths.js'
+
+// How much of /workspace the editor mirrors, so a program can't grow a
+// project until it can't be saved or shown. Generous: imports allow 2,000
+// files and 50 MB (see App.svelte).
+export const SYNC_LIMITS = { fileBytes: 1024 * 1024, files: 5000, bytes: 50 * 1000 * 1000 }
+
+/**
+ * Which of the files a scan found to read into the editor. `files`:
+ * [{ path, size }]; `dirs`: [path]; `known`: { files, dirs }, paths the
+ * editor or the baseline already has, which go first so new files can't
+ * push them out. Returns { read, large, skipped, dirs } (Sets): large files
+ * are shown as binaries (as before); skipped ones stay in the terminal only:
+ * names the project can't hold as they are, and anything past the limits.
+ * `dirs` are the folders to mirror.
+ */
+export function planScan(files, dirs, known, limits = SYNC_LIMITS) {
+  const read = new Set()
+  const large = new Set()
+  const skipped = new Set()
+  let count = 0
+  let bytes = 0
+  const byPath = (a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)
+  const knownFirst = [...files.filter((f) => known.files.has(f.path)).sort(byPath), ...files.filter((f) => !known.files.has(f.path)).sort(byPath)]
+  for (const { path, size } of knownFirst) {
+    if (!isProjectPath(path)) skipped.add(path)
+    else if (size > limits.fileBytes) large.add(path)
+    else if (bytes + size > limits.bytes || (!known.files.has(path) && count >= limits.files)) skipped.add(path)
+    else {
+      read.add(path)
+      count++
+      bytes += size
+    }
+  }
+  // Folders: the ones the editor knows, those of files it shows, then new
+  // ones up to the limit. (A folder left out is also left out of the
+  // baseline, so a push never removes it from the terminal.)
+  const shown = new Set()
+  for (const path of read) for (const dir of ancestors(path)) shown.add(dir)
+  const valid = [...dirs].filter(isProjectPath).sort()
+  const mirrored = new Set(valid.filter((dir) => known.dirs.has(dir) || shown.has(dir)))
+  for (const dir of valid) if (mirrored.size < limits.files) mirrored.add(dir)
+  return { read, large, skipped, dirs: mirrored }
+}
 
 export function emptyBaseline() {
   return { files: new Map(), dirs: new Set() }
@@ -90,8 +135,13 @@ export function planPull(snapshot, editorFiles, editorFolders, baseline) {
   for (const [path, entry] of snapshot.files) {
     const editor = editorByPath.get(path)
     const base = baseline.files.get(path)
+    if (entry.skipped) {
+      // Not mirrored (see planScan): the editor keeps its copy, if any.
+      if (!editor && binaries.length < SYNC_LIMITS.files) binaries.push({ path, size: entry.size })
+      continue
+    }
     if (entry.text === null) {
-      binaries.push({ path, size: entry.size })
+      if (binaries.length < SYNC_LIMITS.files) binaries.push({ path, size: entry.size })
       // A text file the terminal overwrote with binary data (e.g. a compiler
       // output) leaves the editor unless it has unsynced edits.
       if (editor && editor.content === base) deletes.push(path)
@@ -140,6 +190,8 @@ export function applyPullToBaseline(baseline, snapshot, plan, editorFiles) {
   // writes (or removes) them.
   const files = new Map()
   for (const [path, entry] of snapshot.files) {
+    // A skipped file keeps what the baseline had (the editor didn't change).
+    if (entry.skipped && baseline.files.has(path)) files.set(path, baseline.files.get(path))
     if (entry.text === null) continue
     if (editorPaths.has(path) || baseline.files.has(path)) files.set(path, entry.text)
   }
